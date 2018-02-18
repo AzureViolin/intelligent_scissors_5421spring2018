@@ -6,4 +6,8 @@ opencv==3.1
 ```python
 python3 gui/intelligent_scissors_gui.py
 ```
-
+- support open any image in system
+- currently draw straight lines between clicks. Should be updated with drawing the path found by Dijkstra algorithm.
+## interfaces
+- cursor_x, cursor_y stores current mouse coordinates.
+- xy_stack is a list that stores previous clicked points
