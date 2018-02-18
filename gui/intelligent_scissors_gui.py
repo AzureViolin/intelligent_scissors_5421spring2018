@@ -42,8 +42,9 @@ def click_xy(event):
         xy_stack.append([x,y])
 
 def get_xy(event):
-    global cursor_x, cursor_y
+    global cursor_x, cursor_y, cursor_label
     cursor_x, cursor_y = canvas.canvasx(event.x), canvas.canvasy(event.y)
+    cursor_label.configure(text = 'x:{0} y:{1}'.format(cursor_x, cursor_y))
     #print(cursor_x, cursor_y)
 
 def open_image():
@@ -63,35 +64,40 @@ def set_color(newcolor):
 
 root = Tk()
 root.title('Intelligent Scissors by Lei & Hao HKUST COMP5421 Spring 2018')
+root.grid_columnconfigure(0, weight=1)
+root.grid_rowconfigure(0, weight=1)
 
+#frame
 mainframe = ttk.Frame(root,padding='20', borderwidth = '8')
 mainframe['relief'] = 'ridge'
 mainframe.grid(column=0, row=0, sticky=(N,W,E,S))
 
+#define scroll bar
 h = ttk.Scrollbar(mainframe, orient=HORIZONTAL)
 v = ttk.Scrollbar(mainframe, orient=VERTICAL)
+
+#canvas
 canvas = Canvas(mainframe, width=500, height=500, bg='white',scrollregion=(0, 0, 1000, 1000), yscrollcommand=v.set,xscrollcommand=h.set)
+canvas.grid(column=0, row=1, sticky=(N,W,E,S))
 
-button_open_image = ttk.Button(mainframe, text = 'open image', command = open_image).grid(column=0,row=0, sticky=(W,N))
-
+#scroll bar setup
 h['command'] = canvas.xview
 v['command'] = canvas.yview
-ttk.Sizegrip(root).grid(column=1, row=1, sticky=(S,E))
-canvas.grid(column=0, row=1, sticky=(N,W,E,S))
 h.grid(column=0, row=2, sticky=(W,E))
 v.grid(column=1, row=1, sticky=(N,S))
-root.grid_columnconfigure(0, weight=1)
-root.grid_rowconfigure(0, weight=1)
 
-#TODO debugging
-#l =ttk.Label(mainframe, text='Starting...')
-#l.grid(column = 1, row = 0, sticky = W)
-#l.bind('<Enter>', lambda e: l.configure(text='Moved mouse inside'))
-#l.bind('<Return>', lambda e: l.configure(text='Pressed Return'))
-#l.bind('<Leave>', lambda e: l.configure(text='Moved mouse outside'))
-#l.bind('<1>', lambda e: l.configure(text='Clicked left mouse button'))
-#l.bind('<Double-1>', lambda e: l.configure(text='Double clicked'))
+#button
+button_open_image = ttk.Button(mainframe, text = 'open image', command = open_image).grid(column=0,row=0, sticky=(W,N))
 
+#size grip
+ttk.Sizegrip(root).grid(column=1, row=1, sticky=(S,E))
+
+#show cursor coornidate
+cursor_label =ttk.Label(mainframe, text='x:0,y:0')
+cursor_label.grid(column = 0, row = 3, sticky = (E,S))
+canvas.bind('<Leave>', lambda e: cursor_label.configure(text='cursor outside canvas'))
+
+#Main function binding
 canvas.bind('<Button-1>', click_xy)
 canvas.bind('<Control-Button-1>', start)
 root.bind('<Return>', end)
@@ -99,12 +105,12 @@ canvas.bind('<Motion>', get_xy)
 #canvas.bind('<B1-Motion>', add_line)
 #canvas.bind('<B1-ButtonRelease>', done_stroke)
 
+#TODO palette, should do with color chooser dialog
 id = canvas.create_rectangle((10, 10, 30, 30), fill='red', tags=('palette','palettered', 'paletteSelected'))
 canvas.tag_bind(id, '<Button-1>', lambda x: set_color('red'))
 id = canvas.create_rectangle((10, 35, 30, 55), fill='green', tags=('palette','palettegreen'))
 canvas.tag_bind(id, '<Button-1>', lambda x: set_color('green'))
 set_color('red')
-
 canvas.itemconfigure('palette', width=5)
 
 root.mainloop()
