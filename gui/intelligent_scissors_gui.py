@@ -24,12 +24,19 @@ def start(event):
     xy_stack.append([startx,starty])
     print('startx, starty: {0} {1}'.format(startx, starty))
 
-def end(event):
+def close_contour_finish(event):
+    global start_flag
+    print('close contour finish called')
     if (start_flag == True):
         canvas.create_line((lastx, lasty, startx, starty), fill=color, width=5,tags='currentline')
+        start_flag = False
     else:
         print('Warning: end() is called before start()')
 
+def finish(event):
+    global start_flag
+    start_flag = False
+    print('finish called')
 
 def click_xy(event):
     global lastx, lasty, start_flag, xy_stack
@@ -45,6 +52,7 @@ def get_xy(event):
     global cursor_x, cursor_y, cursor_label
     cursor_x, cursor_y = canvas.canvasx(event.x), canvas.canvasy(event.y)
     cursor_label.configure(text = 'x:{0} y:{1}'.format(cursor_x, cursor_y))
+    debug_label.configure(text='start_flag:{0}'.format(start_flag))
     #print(cursor_x, cursor_y)
 
 def open_image():
@@ -97,10 +105,15 @@ cursor_label =ttk.Label(mainframe, text='x:0,y:0')
 cursor_label.grid(column = 0, row = 3, sticky = (E,S))
 canvas.bind('<Leave>', lambda e: cursor_label.configure(text='cursor outside canvas'))
 
+#show other debug info
+debug_label = ttk.Label(mainframe, text='<debug info>')
+debug_label.grid(column = 0, row = 4, sticky = (E,S))
+
 #Main function binding
 canvas.bind('<Button-1>', click_xy)
 canvas.bind('<Control-Button-1>', start)
-root.bind('<Return>', end)
+root.bind('<Return>', finish)
+root.bind('<Control-Return>', close_contour_finish)
 canvas.bind('<Motion>', get_xy)
 #canvas.bind('<B1-Motion>', add_line)
 #canvas.bind('<B1-ButtonRelease>', done_stroke)
