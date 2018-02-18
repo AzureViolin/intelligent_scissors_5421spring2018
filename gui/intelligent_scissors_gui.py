@@ -10,9 +10,11 @@ cursor_x, cursor_y = 0, 0
 xy_stack = []
 
 #Global variables used within this file
-file_name = ''
-image = ''
+#file_name = ''
+#image = ''
 start_flag = False
+#lastx, lasty = 0, 0
+#startx, starty = 0, 0
 
 def start(event):
     global lastx, lasty, startx, starty, start_flag, xy_stack
@@ -23,9 +25,11 @@ def start(event):
     print('startx, starty: {0} {1}'.format(startx, starty))
 
 def end(event):
-    global lastx, lasty, startx, starty
-    canvas.create_line((lastx, lasty, startx, starty), fill=color, width=5,tags='currentline')
-    print('end() is called')
+    if (start_flag == True):
+        canvas.create_line((lastx, lasty, startx, starty), fill=color, width=5,tags='currentline')
+    else:
+        print('Warning: end() is called before start()')
+
 
 def click_xy(event):
     global lastx, lasty, start_flag, xy_stack
@@ -43,7 +47,7 @@ def get_xy(event):
     #print(cursor_x, cursor_y)
 
 def open_image():
-    global file_name, canvas, image
+    global canvas, image
     file_name = filedialog.askopenfilename()
     image = ImageTk.PhotoImage(file=file_name)
     canvas.create_image(0,0, image=image, anchor=NW)
@@ -58,7 +62,7 @@ def set_color(newcolor):
 
 
 root = Tk()
-root.title("Intelligent Scissors by Lei & Hao HKUST COMP5421 Spring 2018")
+root.title('Intelligent Scissors by Lei & Hao HKUST COMP5421 Spring 2018')
 
 mainframe = ttk.Frame(root,padding='20', borderwidth = '8')
 mainframe['relief'] = 'ridge'
@@ -78,10 +82,9 @@ h.grid(column=0, row=2, sticky=(W,E))
 v.grid(column=1, row=1, sticky=(N,S))
 root.grid_columnconfigure(0, weight=1)
 root.grid_rowconfigure(0, weight=1)
-lastx, lasty = 0, 0
 
 #TODO debugging
-#l =ttk.Label(mainframe, text="Starting...")
+#l =ttk.Label(mainframe, text='Starting...')
 #l.grid(column = 1, row = 0, sticky = W)
 #l.bind('<Enter>', lambda e: l.configure(text='Moved mouse inside'))
 #l.bind('<Return>', lambda e: l.configure(text='Pressed Return'))
@@ -89,17 +92,17 @@ lastx, lasty = 0, 0
 #l.bind('<1>', lambda e: l.configure(text='Clicked left mouse button'))
 #l.bind('<Double-1>', lambda e: l.configure(text='Double clicked'))
 
-canvas.bind("<Button-1>", click_xy)
-canvas.bind("<Control-Button-1>", start)
-canvas.bind("<Return>", end)
-canvas.bind("<Motion>", get_xy)
-#canvas.bind("<B1-Motion>", add_line)
-#canvas.bind("<B1-ButtonRelease>", done_stroke)
+canvas.bind('<Button-1>', click_xy)
+canvas.bind('<Control-Button-1>', start)
+root.bind('<Return>', end)
+canvas.bind('<Motion>', get_xy)
+#canvas.bind('<B1-Motion>', add_line)
+#canvas.bind('<B1-ButtonRelease>', done_stroke)
 
-id = canvas.create_rectangle((10, 10, 30, 30), fill="red", tags=('palette','palettered', 'paletteSelected'))
-canvas.tag_bind(id, "<Button-1>", lambda x: set_color("red"))
-id = canvas.create_rectangle((10, 35, 30, 55), fill="green", tags=('palette','palettegreen'))
-canvas.tag_bind(id, "<Button-1>", lambda x: set_color("green"))
+id = canvas.create_rectangle((10, 10, 30, 30), fill='red', tags=('palette','palettered', 'paletteSelected'))
+canvas.tag_bind(id, '<Button-1>', lambda x: set_color('red'))
+id = canvas.create_rectangle((10, 35, 30, 55), fill='green', tags=('palette','palettegreen'))
+canvas.tag_bind(id, '<Button-1>', lambda x: set_color('green'))
 set_color('red')
 
 canvas.itemconfigure('palette', width=5)
