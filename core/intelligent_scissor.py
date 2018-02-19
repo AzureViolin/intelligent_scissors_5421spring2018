@@ -10,7 +10,7 @@ import numpy as np
 import queue
 from heapdict import heapdict
 import cv2
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 
 class IntelligentScissor():
 
@@ -74,9 +74,10 @@ class IntelligentScissor():
                     (new_pose[1],new_pose[0]), 
                     (255,0,0))
             next_pose = new_pose
-        print (path)
-        plt.imshow(self.img)
-        plt.show()
+        
+        #print (path)
+        cv2.imwrite("../images/path.png", self.img)
+        #plt.show()
 
     def link_calculation(self):
 
@@ -104,7 +105,7 @@ class IntelligentScissor():
             prev_pop = self.pq.popitem()
             prev_node_key = prev_pop[0]
             prev_cost = prev_pop[1]
-            print (prev_pop)
+            #print (prev_pop)
             prev_node = self.key2coordinate(prev_node_key)
             self.set_state(prev_node, self.EXPAND)
             prev_link_cost = self.link_cost[prev_node[0]][prev_node[1]]
