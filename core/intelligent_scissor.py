@@ -8,7 +8,7 @@ Info:
 
 import numpy as np
 import queue
-import heapdict
+from heapdict import heapdict
 import cv2
 
 class IntelligentScissor():
@@ -38,33 +38,25 @@ class IntelligentScissor():
         self.ACTIVE  =1
         self.EXPAND  =2
 
-        self.pq = heapdict.heapdict()
+        self.pq = heapdict()
         self.node_dict = {}
-        # TODO put seed to the queue
-        # TODO set the margin point state to expanded
+        
         self.pq[self.coordinate2key(self.seed)] = 0
-        #self.node_dict[self.coordinate2key(self.seed)] = PQ_Node(
-
-                #)
-
-    #def generate_link_cost(self):
-        #for row_ in xrange(self.height):
-            #for column_ in xrange(self.width)
+        self.link_calculation()
+        self.node_dict[self.coordinate2key(self.seed)]=PQ_Node(
+                None)
 
     def coordinate2key(self, pose):
-        return str(pose[0])+'_'+str(pose[1])
+        return str(pose[0]).zfill(3)+'_'+str(pose[1]).zfill(3)
+
+    def key2coordinate(self, key):
+        return (int(key[:3]), int(key[-3:]))
 
     def get_state(self, pose):
         return self.states[pose[0]][pose[1]]
 
     def set_state(self, pose, state):
         self.states[pose[0]][pose[1]] = state
-
-    def make_node(self):
-        #add linkcost
-        #add state as ACTIVE
-        #total cost equal to
-        pass
 
     def link_calculation(self):
 
@@ -82,55 +74,58 @@ class IntelligentScissor():
         link_cost_7 = (self.pad_img[2:,2:,:] - self.pad_img[1:-1,1:-1,:])/np.sqrt(2)
         self.link_cost[:,:,7] = np.sqrt(np.sum(link_cost_7**2, axis=2)/self.dim)
 
-        self.link_cost[:,  1:, 4] = self.link_cost[:,  :-1, 0]
-        self.link_cost[:-1, :, 2] = self.link_cost[1:, :,   6]
-        self.link_cost[1:, 1:, 3] = self.link_cost[:-1,:-1, 7]
-        self.link_cost[:-1,1:, 5] = self.link_cost[1:, :-1, 1]
+        self.link_cost[ :,   1:,  4] = self.link_cost[ :,   :-1,  0]
+        self.link_cost[ :-1,  :,  2] = self.link_cost[1:,   :,    6]
+        self.link_cost[1:,   1:,  3] = self.link_cost[ :-1, :-1,  7]
+        self.link_cost[ :-1, 1:,  5] = self.link_cost[1:,   :-1,  1]
 
     def graph_generation(self):
-        self.pq.put() # put seed to pq
-        while self.pq.size()>0:
-            new_node = self.pq.popitem()
-
-            self.set_state(next_node.pose, self.EXPAND) # set
-            new_node.state = self.EXPAND
-
-            for n_pose in self.get_neighbor_nodes(new_node.pose):
-                # TODO check if n_pose is in the range
+        while len(self.pq)>0:
+            prev_pop = self.pq.popitem()
+            prev_node_key = prev_pop[0]
+            prev_cost = prev_pop[1]
+            prev_node = self.key2coordinate(prev_node_key)
+            self.set_state(prev_node, self.EXPAND)
+            prev_link_cost = self.link_cost[prev_node[0]][prev_node[1]]
+            for (i,n_pose) in enumerate(self.get_neighbor_nodes(prev_node)):
+                if n_pose[0]>=0 and n_pose[0]<self.height and \
+                        n_pose[1]>=0 and n_pose[1]<self.width:
+                            continue
                 if self.get_state(n_pose)==self.INITIAL:
-                    next_node = self.make_node()
-                    # TODO add new node to pq
+                    self.set_state(n_pose, self.ACTIVE)
+                    self.pq[self.coordinate2key(n_pose)]=\
+                            prev_cost+prev_link_cost[i]
+                    self.node_dict[self.coordinate2key(n_pose)]=PQ_Node(
+                            prev_node)
                 elif self.get_state(n_pose)==self.ACTIVE:
-                    # TODO update value in pq
-                    pass
+                    if self.pq[self.coordinate2key(n_pose)]>\
+                            prev_cost+prev_link_cost[i]:
+                        self.pq[self.coordinate2key(n_pose)]=\
+                                prev_cost+prev_link_cost[i]
+                        self.node_dict[self.coordinate2key(n_pose)]=PQ_Node(
+                                prev_node)
 
     def get_neighbor_nodes(self, pose):
-            row = pose[0]
-            column = pose[1]
-            return [(row,    column+1),
-                    (row-1,  column+1),
-                    (row-1,  column),
-                    (row-1,  column-1),
-                    (row,    column-1),
-                    (row+1,  column-1),
-                    (row+1,  column),
-                    (row+1,  column+1)]
+        row = pose[0]
+        column = pose[1]
+        return [(row  ,  column+1),
+                (row-1,  column+1),
+                (row-1,  column  ),
+                (row-1,  column-1),
+                (row  ,  column-1),
+                (row+1,  column-1),
+                (row+1,  column  ),
+                (row+1,  column+1)]
 
 class PQ_Node():
-    def __init__(linkCost, state, totalCost, prevNode, pose):
-        self.linkCost =None
-        self.state = 0 # initial
-        self.prevNode = None
-        self.pose = None # (row,colum)
-
-    def __cmp__(self, other):
-        return cmp(self.totalCost, other.totalCost)
-
+    def __init__(self, prevNode):
+        self.prevNode = prevNode
 
 if __name__=="__main__":
     #img = cv2.imread("../images/test.jpg", cv2.IMREAD_GRAYSCALE)
     img = cv2.imread("../images/test.jpg")
-    img = cv2.resize(img, (3,3))
+    img = cv2.resize(img, (15,15))
     seed = (5,4)
     obj = IntelligentScissor(img, seed)
     obj.link_calculation()
+    obj.graph_generation()
