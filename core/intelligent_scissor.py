@@ -69,15 +69,13 @@ class IntelligentScissor():
         while self.prev_dict[self.coordinate2key(next_pose)] != None:
             new_pose = self.prev_dict[self.coordinate2key(next_pose)]
             path.append(new_pose)
-            cv2.line(self.img,
-                    (next_pose[1],next_pose[0]),
-                    (new_pose[1],new_pose[0]), 
-                    (255,0,0))
+            #cv2.line(self.img,
+                    #(next_pose[1],next_pose[0]),
+                    #(new_pose[1],new_pose[0]), 
+                    #(255,0,0))
             next_pose = new_pose
-        
-        #print (path)
-        cv2.imwrite("../images/path.png", self.img)
-        #plt.show()
+        #cv2.imwrite("../images/path.png", self.img)
+        return path 
 
     def link_calculation(self):
 
@@ -132,7 +130,7 @@ class IntelligentScissor():
         #print (np.max(self.costs))
         #plt.imshow(self.costs)
         #plt.show()
-        cv2.imwrite("../images/costs2.png", self.costs/np.max(self.costs)*255)
+        #cv2.imwrite("../images/costs2.png", self.costs/np.max(self.costs)*255)
 
     def get_neighbor_nodes(self, pose):
         row = pose[0]
@@ -158,4 +156,4 @@ if __name__=="__main__":
     obj = IntelligentScissor(img, seed)
     obj.link_calculation()
     obj.graph_generation()
-    obj.get_path((120,260))
+    obj.get_path((120,10))
