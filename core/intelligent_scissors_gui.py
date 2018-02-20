@@ -3,12 +3,14 @@ from tkinter import ttk
 from tkinter import filedialog
 from PIL import ImageTk, Image
 from intelligent_scissor import IntelligentScissor
+import cv2
 
 #Global variables shared between files
 #cursor_x, cursor_y holds current cursor coordinates
 cursor_x, cursor_y = 0, 0
 #xy_stack saves all past clicks
 xy_stack = []
+canvas_path = []
 
 #Global variables used within this file
 #file_name = ''
@@ -18,14 +20,35 @@ lastx, lasty = 0, 0
 canvas_id = 0
 #startx, starty = 0, 0
 
+def open_image():
+    global canvas, image, cvimg, start_flag
+    #TODO remove debug clause
+    default = False
+    start_flag = False
+    if default == True:
+        image = ImageTk.PhotoImage(file='../images/test.jpg')
+        cvimg = cv2.imread("../images/test.jpg")
+        canvas.create_image(0,0, image=image, anchor=NW)
+    else :
+        file_name = filedialog.askopenfilename()
+        image = ImageTk.PhotoImage(file=file_name)
+        cvimg = cv2.imread(file_name)
+        canvas.create_image(0,0, image=image, anchor=NW)
+
 def start(event):
-    global lastx, lasty, startx, starty, start_flag, xy_stack
+    global lastx, lasty, startx, starty, start_flag, xy_stack, obj
     start_flag = True
     startx, starty = canvas.canvasx(event.x), canvas.canvasy(event.y)
     lastx, lasty = startx, starty
     xy_stack.append([startx,starty,-99])
     stack_label.configure(text=xy_stack)
     print('startx, starty: {0} {1}'.format(startx, starty))
+    obj = IntelligentScissor(cvimg, (int(startx),int(starty)))
+    print('link_calculation')
+    obj.link_calculation()
+    print('graph_generation')
+    obj.graph_generation()
+    print('graph_generation COMPLETES')
 
 def close_contour_finish(event):
     global start_flag, canvas_id
@@ -42,46 +65,67 @@ def finish(event):
     print('finish called')
 
 def click_xy(event):
-    global lastx, lasty, start_flag, xy_stack, canvas_id
+    global lastx, lasty, start_flag, xy_stack, canvas_id, canvas_path
     #print('event x y:{0} {1}'.format(event.x,event.y))
     #print('last  x y:{0} {1}'.format(lastx,lasty))
     if (start_flag == True):
+
         x, y = canvas.canvasx(event.x), canvas.canvasy(event.y)
-        canvas_id = canvas.create_line((lastx, lasty, x, y), fill=color, width=5,tags='currentline')
+        set_color('green')
+        canvas_id = canvas.create_line((lastx, lasty, x, y), fill=color, width=1,tags='currentline')
         lastx, lasty = x, y
         xy_stack.append([x,y,canvas_id])
-        stack_label.configure(text=xy_stack)
+        #stack_label.configure(text=xy_stack)
 
 def delete(event):
     global canvas_id, lastx, lasty, start_flag
     #[popx, popy, pop_id] = xy_stack[-1]
     if start_flag == True:
         [popx, popy, pop_id] = xy_stack.pop()
-        stack_label.configure(text=xy_stack)
+        #stack_label.configure(text=xy_stack)
         if pop_id == -99 :
             start_flag = False
         else :
             canvas.delete(pop_id)
             [lastx, lasty, canvas_id] = xy_stack[-1]
-            stack_label.configure(text=xy_stack)
+            #stack_label.configure(text=xy_stack)
             debug_label.configure(text='canvas_id:{0}'.format(canvas_id))
             debug2_label.configure(text='removed_id:{0}'.format(pop_id))
             debug3_label.configure(text='lastx:{0} lasty:{1}'.format(lastx,lasty))
 
 def get_xy(event):
-    global cursor_x, cursor_y, cursor_label, canvas_id, lastx, lasty
+    global cursor_x, cursor_y, cursor_label, canvas_id, lastx, lasty, canvas_path
     cursor_x, cursor_y = canvas.canvasx(event.x), canvas.canvasy(event.y)
     cursor_label.configure(text = 'x:{0} y:{1}'.format(cursor_x, cursor_y))
     debug_label.configure(text='start_flag:{0}'.format(start_flag))
     debug2_label.configure(text='line_id:{0}'.format(canvas_id))
     debug3_label.configure(text='lastx:{0} lasty:{1}'.format(lastx,lasty))
     #print(cursor_x, cursor_y)
+    if start_flag == True:
+        #remove last path in canvas
+        canvas_path_len = len(canvas_path)
+        for line_id in canvas_path:
+            canvas.delete(line_id)
+        canvas_path.clear()
 
-def open_image():
-    global canvas, image
-    file_name = filedialog.askopenfilename()
-    image = ImageTk.PhotoImage(file=file_name)
-    canvas.create_image(0,0, image=image, anchor=NW)
+        #draw new path in canvas
+        cursor_label.configure(text = 'getting path for x:{0} y:{1}'.format(cursor_x, cursor_y))
+        path = obj.get_path((int(cursor_x),int(cursor_y)))
+        set_color('red')
+        path_len = len(path)
+        for index, point in enumerate(path):
+            if index < (path_len - 1):
+                next_point = path[index + 1]
+            else:
+                #print('reached last point, break for loop')
+                break
+            canvas_id = canvas.create_line((point[0],point[1],next_point[0],next_point[1]), fill = color, width = 1, tags = 'currentline')
+            canvas_path.append(canvas_id)
+
+
+        #cursor_label.configure(text = 'getting path for x:{0} y:{1}'.format(cursor_x, cursor_y))
+        #path = obj.get_path((int(cursor_x),int(cursor_y)))
+        #print(path)
 
 def set_color(newcolor):
     global color
@@ -152,7 +196,7 @@ canvas_id = canvas.create_rectangle((10, 10, 30, 30), fill='red', tags=('palette
 canvas.tag_bind(canvas_id, '<Button-1>', lambda x: set_color('red'))
 canvas_id = canvas.create_rectangle((10, 35, 30, 55), fill='green', tags=('palette','palettegreen'))
 canvas.tag_bind(canvas_id, '<Button-1>', lambda x: set_color('green'))
-set_color('red')
+set_color('green')
 canvas.itemconfigure('palette', width=5)
 
 root.mainloop()

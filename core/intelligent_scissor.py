@@ -20,6 +20,8 @@ class IntelligentScissor():
         @img: numpy array
         @seed: [row,column]
         '''
+        #TODO more elegent way to switch row & column
+        seed = (seed[1], seed[0])
 
         self.height = img.shape[0]
         self.width = img.shape[1]
@@ -64,11 +66,14 @@ class IntelligentScissor():
 
     def get_path(self, pose):
         path = []
+        #TODO more elegent way to switch row & column
+        pose = (pose[1],pose[0])
         next_pose = pose
         path.append(next_pose)
         while self.prev_dict[self.coordinate2key(next_pose)] != None:
             new_pose = self.prev_dict[self.coordinate2key(next_pose)]
-            path.append(new_pose)
+            #TODO more elegent way to switch row & column
+            path.append((new_pose[1],new_pose[0]))
             #cv2.line(self.img,
                     #(next_pose[1],next_pose[0]),
                     #(new_pose[1],new_pose[0]), 
