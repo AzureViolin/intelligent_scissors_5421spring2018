@@ -174,27 +174,20 @@ class IntelligentScissor():
             prev_node_obj.state = self.EXPAND
             self.node_dict[prev_node_key] = prev_node_obj
             for n_pose in prev_node_obj.neighbours:
-                if n_pose[1]>=0 and n_pose[1]<self.height and \
-                        n_pose[2]>=0 and n_pose[2]<self.width:
-                    n_pose_node = self.node_dict[n_pose[0]]
-                    n_pose_state = n_pose_node.state
-                    new_cost = prev_cost+n_pose[3]
-                    if n_pose_state==self.INITIAL:
+                n_pose_node = self.node_dict[n_pose[0]]
+                n_pose_state = n_pose_node.state
+                new_cost = prev_cost+n_pose[1]
+                if n_pose_state==self.INITIAL:
+                    self.pq[n_pose[0]]=new_cost
+                    n_pose_node.state = self.ACTIVE
+                    n_pose_node.prev_node = prev_node_key
+                    self.node_dict[n_pose[0]]=n_pose_node
+                elif n_pose_state==self.ACTIVE:
+                    if self.pq[n_pose[0]]>new_cost:
                         self.pq[n_pose[0]]=new_cost
-                        n_pose_node.state = self.ACTIVE
                         n_pose_node.prev_node = prev_node_key
                         self.node_dict[n_pose[0]]=n_pose_node
-                    elif n_pose_state==self.ACTIVE:
-                        if self.pq[n_pose[0]]>new_cost:
-                            self.pq[n_pose[0]]=new_cost
-                            n_pose_node.prev_node = prev_node_key
-                            self.node_dict[n_pose[0]]=n_pose_node
         
-        for h in range(self.height):
-            for k in range(self.width):
-                key_ = str(h)+'_'+str(k)
-                if key_ != self.coordinate2key(self.seed):
-                    assert(self.node_dict[str(h)+'_'+str(k)].prev_node!=None)
         #end = time.time()
         #print ("total map time", end-start_all)
         #cv2.imwrite("../output/costs2.png", self.costs/np.max(self.costs)*255)
@@ -214,28 +207,29 @@ class IntelligentScissor():
     def get_neighbor_node_keys(self, pose, link_cost):
         row = pose[0]
         column = pose[1]
-        return [[self.coordinate2key((row  ,  column+1)),
-            row,   column+1, link_cost[0]],
-                [self.coordinate2key((row-1,  column+1)),
-            row-1, column+1, link_cost[1]],
-                [self.coordinate2key((row-1,  column  )),
-            row-1, column,   link_cost[2]],
-                [self.coordinate2key((row-1,  column-1)),
-            row-1, column-1, link_cost[3]],
-                [self.coordinate2key((row  ,  column-1)),
-            row,   column-1, link_cost[4]],
-                [self.coordinate2key((row+1,  column-1)),
-            row+1, column-1, link_cost[5]],
-                [self.coordinate2key((row+1,  column  )),
-            row+1, column,   link_cost[6]],
-                [self.coordinate2key((row+1,  column+1)),
-            row+1, column+1, link_cost[7]]]
+        return [[self.coordinate2key((row  ,  column+1)), link_cost[0]],
+                [self.coordinate2key((row-1,  column+1)), link_cost[1]],
+                [self.coordinate2key((row-1,  column  )), link_cost[2]],
+                [self.coordinate2key((row-1,  column-1)), link_cost[3]],
+                [self.coordinate2key((row  ,  column-1)), link_cost[4]],
+                [self.coordinate2key((row+1,  column-1)), link_cost[5]],
+                [self.coordinate2key((row+1,  column  )), link_cost[6]],
+                [self.coordinate2key((row+1,  column+1)), link_cost[7]]]
 
     def generate_all_node_dict(self):
-        for i in range(self.height):
-            for j in range(self.width):
+        for i in range(1,self.height-1):
+            for j in range(1,self.width-1):
                 self.node_dict[self.coordinate2key((i,j))]=\
                         PQ_Node(None, self.INITIAL, self.get_neighbor_node_keys((i,j), self.link_cost[i][j]))
+        # Initial all the border point as EXPAND
+        for i in [0, self.height-1]:
+            for j in range(self.width):
+                self.node_dict[self.coordinate2key((i,j))]=\
+                        PQ_Node(None, self.EXPAND, None)
+        for i in range(self.height):
+            for j in [0, self.width-1]:
+                self.node_dict[self.coordinate2key((i,j))]=\
+                        PQ_Node(None, self.EXPAND, None)
 
 class PQ_Node():
     def __init__(self, prev_node, state, neighbours):
@@ -243,16 +237,10 @@ class PQ_Node():
         self.state = state
         self.neighbours = neighbours
 
-#class NB_Node():
-    #def __init__(self, key, row, column):
-        #self.key = key
-        #self.row = row
-        #self.row = column
-
 if __name__=="__main__":
     import cv2
-    #img = cv2.imread("../images/test2.jpg", cv2.IMREAD_GRAYSCALE)
-    img = cv2.imread("../images/test2.jpg")
+    img = cv2.imread("../images/test2.jpg", cv2.IMREAD_GRAYSCALE)
+    #img = cv2.imread("../images/test3.jpeg")
     #img = cv2.resize(img, (15,15))
     seed = (240,199)
     obj = IntelligentScissor(img, seed)
