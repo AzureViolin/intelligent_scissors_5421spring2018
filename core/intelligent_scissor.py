@@ -20,6 +20,8 @@ class IntelligentScissor():
         @img: numpy array
         @seed: [row,column]
         '''
+        #TODO more elegent way to switch row & column
+        seed = (seed[1], seed[0])
 
         self.height = img.shape[0]
         self.width = img.shape[1]
@@ -67,6 +69,8 @@ class IntelligentScissor():
 
     def get_path(self, pose):
         path = []
+        #TODO more elegent way to switch row & column
+        pose = (pose[1],pose[0])
         next_pose = pose
         path.append(next_pose)
         next_pose_key = self.coordinate2key(next_pose)
@@ -76,12 +80,12 @@ class IntelligentScissor():
             path.append(new_pose)
             cv2.line(self.img,
                     (next_pose[1],next_pose[0]),
-                    (new_pose[1],new_pose[0]), 
+                    (new_pose[1],new_pose[0]),
                     (255,0,0))
             next_pose = new_pose
             next_pose_key = new_pose_node.prev_node
         cv2.imwrite("../images/path.png", self.img)
-        return path 
+        return path
 
     def link_calculation(self):
 
@@ -177,7 +181,7 @@ class IntelligentScissor():
                         n_pose[2]>=0 and n_pose[2]<self.width:
                     n_pose_node = self.node_dict[n_pose[0]]
                     n_pose_state = n_pose_node.state
-                    new_cost = prev_cost+prev_link_cost[i] 
+                    new_cost = prev_cost+prev_link_cost[i]
                     if n_pose_state==self.INITIAL:
                         self.pq[n_pose[0]]=new_cost
                         n_pose_node.state = self.ACTIVE
@@ -241,7 +245,7 @@ if __name__=="__main__":
     #img = cv2.imread("../images/test2.jpg", cv2.IMREAD_GRAYSCALE)
     img = cv2.imread("../images/test3.jpeg")
     #img = cv2.resize(img, (15,15))
-    
+
     seed = (100,130)
     obj = IntelligentScissor(img, seed)
     obj.link_calculation()
