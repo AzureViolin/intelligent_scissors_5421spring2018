@@ -12,6 +12,7 @@ cursor_x, cursor_y = 0, 0
 xy_stack = []
 #canvas ids of line segments in path drawn on canvas, correspond to the computed path
 canvas_path = []
+canvas_path_stack = []
 
 #Global variables used within this file
 #file_name = ''
@@ -36,20 +37,24 @@ def open_image():
         cvimg = cv2.imread(file_name)
         canvas.create_image(0,0, image=image, anchor=NW)
 
+def seed_to_graph(seed_x,seed_y):
+    global obj
+    obj = IntelligentScissor(cvimg, (int(seed_x),int(seed_y)))
+    print('link_calculation')
+    obj.link_calculation()
+    print('graph_generation')
+    obj.graph_generation()
+    print('graph_generation COMPLETED')
+
 def start(event):
-    global lastx, lasty, startx, starty, start_flag, xy_stack, obj
+    global lastx, lasty, startx, starty, start_flag, xy_stack
     start_flag = True
     startx, starty = canvas.canvasx(event.x), canvas.canvasy(event.y)
     lastx, lasty = startx, starty
     xy_stack.append([startx,starty,-99])
     stack_label.configure(text=xy_stack)
     print('startx, starty: {0} {1}'.format(startx, starty))
-    obj = IntelligentScissor(cvimg, (int(startx),int(starty)))
-    print('link_calculation')
-    obj.link_calculation()
-    print('graph_generation')
-    obj.graph_generation()
-    print('graph_generation COMPLETES')
+    seed_to_graph(startx,starty)
 
 def close_contour_finish(event):
     global start_flag, canvas_id
@@ -73,7 +78,16 @@ def click_xy(event):
 
         x, y = canvas.canvasx(event.x), canvas.canvasy(event.y)
         set_color('green')
-        canvas_id = canvas.create_line((lastx, lasty, x, y), fill=color, width=1,tags='currentline')
+
+        #fix current path on canvas, start new seed
+        #canvas_id = canvas.create_line((lastx, lasty, x, y), fill=color, width=1,tags='currentline')
+        draw_path()
+        canvas_path_stack.append(canvas_path)
+        canvas_path.clear()
+
+        #generate new graph with new seed
+        seed_to_graph(x,y)
+
         lastx, lasty = x, y
         xy_stack.append([x,y,canvas_id])
         stack_label.configure(text=xy_stack)
@@ -111,20 +125,23 @@ def get_xy(event):
         for line_id in canvas_path:
             canvas.delete(line_id)
         canvas_path.clear()
+        #draw new path on canvas
+        draw_path()
 
-        #draw new path in canvas
-        cursor_label.configure(text = 'getting path for x:{0} y:{1}'.format(cursor_x, cursor_y))
-        path = obj.get_path((int(cursor_x),int(cursor_y)))
-        set_color('red')
-        path_len = len(path)
-        for index, point in enumerate(path):
-            if index < (path_len - 1):
-                next_point = path[index + 1]
-            else:
-                #print('reached last point, break for loop')
-                break
-            canvas_id = canvas.create_line((point[0],point[1],next_point[0],next_point[1]), fill = color, width = 1, tags = 'currentline')
-            canvas_path.append(canvas_id)
+def draw_path():
+    global cursor_label, canvas_id, lastx, lasty, canvas_path
+    cursor_label.configure(text = 'getting path for x:{0} y:{1}'.format(cursor_x, cursor_y))
+    path = obj.get_path((int(cursor_x),int(cursor_y)))
+    set_color('red')
+    path_len = len(path)
+    for index, point in enumerate(path):
+        if index < (path_len - 1):
+            next_point = path[index + 1]
+        else:
+            #print('reached last point, break for loop')
+            break
+        canvas_id = canvas.create_line((point[0],point[1],next_point[0],next_point[1]), fill = color, width = 1, tags = 'currentline')
+        canvas_path.append(canvas_id)
 
 
         #cursor_label.configure(text = 'getting path for x:{0} y:{1}'.format(cursor_x, cursor_y))
