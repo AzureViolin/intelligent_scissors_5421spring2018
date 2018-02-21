@@ -108,3 +108,4 @@ tags
 *.swp
 ipython
 *.ipynb
+*ipynb*
