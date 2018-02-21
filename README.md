@@ -12,7 +12,7 @@ tkinter
 ## to run gui
 ```bash
 cd core
-python3 intelligent_scissors_gui.py
+python3 gui.py
 ```
 - support open any image in system
 - currently draw straight lines between clicks. Should be updated with drawing the path found by Dijkstra algorithm.
@@ -23,10 +23,10 @@ python3 intelligent_scissors_gui.py
 ## GUI operation manual
 Done
 1. Ctrl + left click : first seed
-1. left  click : following seed 
+1. left  click : following seed
 1. moving cursor in sissor mode: keep a stack for previous seeds in sequence shared between GUI and algorithm.  The top element is the current seed. GUI keep sending current cursor coordinates to algorithm, and algorithm keeps computing the path, send it back to GUI, where GUI visuializes it.
 
-Currently in progress
+Currently in progress (partially implemented)
 1. Enter : finish the current contour
 1. Ctrl + Enter: close current contour and fish
 1. Backspace: when scissoring, delete the last seed; otherwise, delete selected contour. Select a contour by moving onto it. Selected contour is red, un-selected ones are green.
@@ -34,4 +34,4 @@ Currently in progress
 Not implemented
 1. Ctrl + '+' : zoom in
 1. Ctrl + '-' : zoom out
-1. Arrow key : navigate 
+1. Arrow key : navigate

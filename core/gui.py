@@ -181,16 +181,16 @@ ttk.Sizegrip(root).grid(column=1, row=1, sticky=(S,E))
 
 #show cursor coornidate
 cursor_label =ttk.Label(mainframe, text='x:0,y:0')
-cursor_label.grid(column = 0, row = 5, sticky = (E,N))
+cursor_label.grid(column = 3, row = 5, sticky = (E,N))
 canvas.bind('<Leave>', lambda e: cursor_label.configure(text='cursor outside canvas'))
 
 #show other debug info
 debug_label = ttk.Label(mainframe, text='<debug info>')
-debug_label.grid(column = 1, row = 5, sticky = (E,N))
+debug_label.grid(column = 0, row = 5, sticky = (W,N))
 debug2_label = ttk.Label(mainframe, text='<debug2 info>')
-debug2_label.grid(column = 2, row = 5, sticky = (E,N))
+debug2_label.grid(column = 1, row = 5, sticky = (W,N))
 debug3_label = ttk.Label(mainframe, text='<debug3 info>')
-debug3_label.grid(column = 3, row = 5, sticky = (E,N))
+debug3_label.grid(column = 2, row = 5, sticky = (W,N))
 stack_label = ttk.Label(mainframe, text='<stack info>', wraplength = 600, justify = 'left')
 stack_label.grid(column = 0, row = 6, columnspan = 4, sticky = (W,N))
 
