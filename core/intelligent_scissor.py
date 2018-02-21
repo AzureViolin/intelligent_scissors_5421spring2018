@@ -176,13 +176,16 @@ class IntelligentScissor():
             for n_pose in prev_node_obj.neighbours:
                 n_pose_node = self.node_dict[n_pose[0]]
                 n_pose_state = n_pose_node.state
-                new_cost = prev_cost+n_pose[1]
-                if n_pose_state==self.INITIAL:
+                if n_pose_state==self.EXPAND:
+                    continue
+                elif n_pose_state==self.INITIAL:
+                    new_cost = prev_cost+n_pose[1]
                     self.pq[n_pose[0]]=new_cost
                     n_pose_node.state = self.ACTIVE
                     n_pose_node.prev_node = prev_node_key
                     self.node_dict[n_pose[0]]=n_pose_node
                 elif n_pose_state==self.ACTIVE:
+                    new_cost = prev_cost+n_pose[1]
                     if self.pq[n_pose[0]]>new_cost:
                         self.pq[n_pose[0]]=new_cost
                         n_pose_node.prev_node = prev_node_key
