@@ -146,7 +146,8 @@ def draw_path():
         else:
             #print('reached last point, break for loop')
             break
-        canvas_id = canvas.create_line((point[0],point[1],next_point[0],next_point[1]), fill = color, width = 1, tags = 'currentline')
+        #canvas_id = canvas.create_line((point[0],point[1],next_point[0],next_point[1]), fill = color, width = 1, tags = 'currentline')
+        canvas_id = canvas.create_line((point[1],point[0],next_point[1],next_point[0]), fill = color, width = 1, tags = 'currentline')
         canvas_path.append(canvas_id)
 
 
@@ -178,7 +179,7 @@ h = ttk.Scrollbar(mainframe, orient=HORIZONTAL)
 v = ttk.Scrollbar(mainframe, orient=VERTICAL)
 
 #canvas
-canvas = Canvas(mainframe, width=500, height=500, bg='white',scrollregion=(0, 0, 1000, 1000), yscrollcommand=v.set,xscrollcommand=h.set)
+canvas = Canvas(mainframe, width=640, height=480, bg='white',scrollregion=(0, 0, 1000, 1000), yscrollcommand=v.set,xscrollcommand=h.set)
 canvas.grid(column=0, row=0, columnspan = 4, rowspan = 4, sticky=(N,W,E,S))
 mainframe.columnconfigure(0,weight = 3)
 mainframe.columnconfigure(1,weight = 3)

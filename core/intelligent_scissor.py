@@ -84,7 +84,7 @@ class IntelligentScissor():
                     (255,0,0))
             next_pose = new_pose
             next_pose_key = new_pose_node.prev_node
-        cv2.imwrite("../images/path.png", self.img)
+        cv2.imwrite("../output/path.png", self.img)
         return path
 
     def link_calculation(self):
@@ -127,7 +127,7 @@ class IntelligentScissor():
         self.cost_graph[2::3,2::3,:]=self.link_cost[:,:,7:8]\
                 +np.zeros(self.dim)
         self.cost_graph[1::3,1::3,:]=self.img
-        cv2.imwrite("../images/cost_graph.png",self.cost_graph)
+        cv2.imwrite("../output/cost_graph.png",self.cost_graph)
 
 
     #def cost_map_generation(self):
