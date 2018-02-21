@@ -32,8 +32,8 @@ class IntelligentScissor():
 
         self.states = np.zeros((self.height, self.width),
                 dtype=np.int32)  # 0 INITIAL, 1 ACTIVE, 2 EXPANDED
-        #self.costs = np.zeros((self.height, self.width),
-                #dtype=np.float32)
+        self.costs = np.zeros((self.height, self.width),
+                dtype=np.float32)
         self.link_cost = np.zeros((self.height, self.width, 8),
                 dtype=np.float32)
         self.cost_graph=np.zeros((self.height*3, self.width*3, self.dim),
@@ -159,7 +159,7 @@ class IntelligentScissor():
             ##break
         #end = time.time()
         #print ("total map time", end-start)
-        ##cv2.imwrite("../images/costs2.png", self.costs/np.max(self.costs)*255)
+        cv2.imwrite("../output/costs2.png", self.costs/np.max(self.costs)*255)
 
 
     def cost_map_generation(self):
@@ -194,7 +194,7 @@ class IntelligentScissor():
                             self.node_dict[n_pose[0]]=n_pose_node
         end = time.time()
         print ("total map time", end-start)
-        #cv2.imwrite("../images/costs2.png", self.costs/np.max(self.costs)*255)
+        cv2.imwrite("../output/costs2.png", self.costs/np.max(self.costs)*255)
 
     def get_neighbor_nodes(self, pose):
         row = pose[0]
