@@ -10,6 +10,7 @@ import cv2
 cursor_x, cursor_y = 0, 0
 #xy_stack saves all past clicks
 xy_stack = []
+#canvas ids of line segments in path drawn on canvas, correspond to the computed path
 canvas_path = []
 
 #Global variables used within this file
@@ -54,7 +55,7 @@ def close_contour_finish(event):
     global start_flag, canvas_id
     print('close contour finish called')
     if (start_flag == True):
-        canvas_id = canvas.create_line((lastx, lasty, startx, starty), fill=color, width=5,tags='currentline')
+        canvas_id = canvas.create_line((lastx, lasty, startx, starty), fill=color, width=1,tags='currentline')
         start_flag = False
     else:
         print('Warning: end() is called before start()')
@@ -75,20 +76,23 @@ def click_xy(event):
         canvas_id = canvas.create_line((lastx, lasty, x, y), fill=color, width=1,tags='currentline')
         lastx, lasty = x, y
         xy_stack.append([x,y,canvas_id])
-        #stack_label.configure(text=xy_stack)
+        stack_label.configure(text=xy_stack)
+    debug_label.configure(text='start_flag:{0}'.format(start_flag))
+    debug2_label.configure(text='line_id:{0}'.format(canvas_id))
+    debug3_label.configure(text='lastx:{0} lasty:{1}'.format(lastx,lasty))
 
 def delete(event):
     global canvas_id, lastx, lasty, start_flag
     #[popx, popy, pop_id] = xy_stack[-1]
     if start_flag == True:
         [popx, popy, pop_id] = xy_stack.pop()
-        #stack_label.configure(text=xy_stack)
+        stack_label.configure(text=xy_stack)
         if pop_id == -99 :
             start_flag = False
         else :
             canvas.delete(pop_id)
             [lastx, lasty, canvas_id] = xy_stack[-1]
-            #stack_label.configure(text=xy_stack)
+            stack_label.configure(text=xy_stack)
             debug_label.configure(text='canvas_id:{0}'.format(canvas_id))
             debug2_label.configure(text='removed_id:{0}'.format(pop_id))
             debug3_label.configure(text='lastx:{0} lasty:{1}'.format(lastx,lasty))
@@ -187,8 +191,8 @@ debug2_label = ttk.Label(mainframe, text='<debug2 info>')
 debug2_label.grid(column = 2, row = 5, sticky = (E,N))
 debug3_label = ttk.Label(mainframe, text='<debug3 info>')
 debug3_label.grid(column = 3, row = 5, sticky = (E,N))
-stack_label = ttk.Label(mainframe, text='<stack info>')
-stack_label.grid(column = 0, row = 6, sticky = (E,N))
+stack_label = ttk.Label(mainframe, text='<stack info>', wraplength = 600, justify = 'left')
+stack_label.grid(column = 0, row = 6, columnspan = 4, sticky = (W,N))
 
 #Main function binding
 canvas.bind('<Button-1>', click_xy)
