@@ -71,9 +71,9 @@ class IntelligentScissor():
     def get_path(self, pose):
         path = []
         #TODO more elegent way to switch row & column
+        path.append(pose)
         pose = (pose[1],pose[0])
         next_pose = pose
-        path.append(next_pose)
         next_pose_key = self.coordinate2key(next_pose)
         while self.node_dict[next_pose_key].prev_node != None:
             new_pose_node = self.node_dict[self.node_dict[next_pose_key].prev_node]
