@@ -4,6 +4,7 @@ from tkinter import filedialog
 from PIL import ImageTk, Image
 from intelligent_scissor import IntelligentScissor
 import cv2
+import time
 
 #Global variables shared between files
 #cursor_x, cursor_y holds current cursor coordinates
@@ -40,11 +41,16 @@ def open_image():
 def seed_to_graph(seed_x,seed_y):
     global obj
     obj = IntelligentScissor(cvimg, (int(seed_x),int(seed_y)))
-    print('link_calculation')
     obj.link_calculation()
-    print('graph_generation')
-    obj.graph_generation()
-    print('graph_generation COMPLETED')
+    start_time = time.time()
+    print('node dict generation')
+    obj.generate_all_node_dict()
+    print('node dict generation time:', time.time() - start_time)
+    start_time = time.time()
+    print('cost_map_generation')
+    obj.cost_map_generation()
+    print('cost map generation time:', time.time() - start_time)
+    print('cost map generation COMPLETED')
 
 def start(event):
     global lastx, lasty, startx, starty, start_flag, xy_stack
