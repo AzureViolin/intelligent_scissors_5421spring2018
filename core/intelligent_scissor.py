@@ -31,10 +31,11 @@ class IntelligentScissor():
         self.states = np.zeros((self.height, self.width),
                 dtype=np.int32)  # 0 INITIAL, 1 ACTIVE, 2 EXPANDED
         self.costs = np.zeros((self.height, self.width),
-                dtype=np.int32)
-        #+np.NAN
+                dtype=np.float32)
         self.link_cost = np.zeros((self.height, self.width, 8),
-                dtype=np.int32)+np.NAN
+                dtype=np.float32)
+        self.cost_graph=np.zeros((self.height*3, self.width*3, self.dim),
+                dtype=np.float32)
 
         self.INITIAL =0
         self.ACTIVE  =1
@@ -69,36 +70,58 @@ class IntelligentScissor():
         while self.prev_dict[self.coordinate2key(next_pose)] != None:
             new_pose = self.prev_dict[self.coordinate2key(next_pose)]
             path.append(new_pose)
-            #cv2.line(self.img,
-                    #(next_pose[1],next_pose[0]),
-                    #(new_pose[1],new_pose[0]), 
-                    #(255,0,0))
+            cv2.line(self.img,
+                    (next_pose[1],next_pose[0]),
+                    (new_pose[1],new_pose[0]), 
+                    (255,0,0))
             next_pose = new_pose
-        #cv2.imwrite("../images/path.png", self.img)
+        cv2.imwrite("../images/path.png", self.img)
         return path 
 
     def link_calculation(self):
 
-        upminusdown = np.abs(self.pad_img[:-2,:,:] - self.pad_img[2:,:,:])
-        link_cost_0 = ((upminusdown[:,1:-1,:] + upminusdown[:,2:,:]))/4
+        up_down = self.pad_img[:-2,:,:] - self.pad_img[2:,:,:]
+        link_cost_0 = np.abs(up_down[:,1:-1,:] + up_down[:,2:,:])/4
         self.link_cost[:,:,0] = np.sqrt(np.sum(link_cost_0**2, axis=2)/self.dim)
 
-        leftminusright = np.abs(self.pad_img[:,:-2,:] - self.pad_img[:,2:,:])
-        link_cost_6 = ((leftminusright[1:-1,:,:] + leftminusright[2:,:,:]))/4
+        left_right = self.pad_img[:,:-2,:] - self.pad_img[:,2:,:]
+        link_cost_6 = np.abs(left_right[1:-1,:,:] + left_right[2:,:,:])/4
         self.link_cost[:,:,6] = np.sqrt(np.sum(link_cost_6**2, axis=2)/self.dim)
 
-        link_cost_1 = np.abs(self.pad_img[:-2,2:,:]-self.pad_img[1:-1,1:-1,:])/np.sqrt(2)
+        link_cost_1 = np.abs(self.pad_img[:-2,1:-1,:]-self.pad_img[1:-1,2:,:])/np.sqrt(2)
         self.link_cost[:,:,1] = np.sqrt(np.sum(link_cost_1**2, axis=2)/self.dim)
 
-        link_cost_7 = np.abs(self.pad_img[2:,2:,:]-self.pad_img[1:-1,1:-1,:])/np.sqrt(2)
+        link_cost_7 = np.abs(self.pad_img[1:-1,2:,:]-self.pad_img[2:,1:-1,:])/np.sqrt(2)
         self.link_cost[:,:,7] = np.sqrt(np.sum(link_cost_7**2, axis=2)/self.dim)
 
         self.link_cost[ :,   1:,  4] = self.link_cost[ :,   :-1,  0]
-        self.link_cost[ :-1,  :,  2] = self.link_cost[1:,   :,    6]
+        self.link_cost[1:,    :,  2] = self.link_cost[ :-1, :,    6]
         self.link_cost[1:,   1:,  3] = self.link_cost[ :-1, :-1,  7]
         self.link_cost[ :-1, 1:,  5] = self.link_cost[1:,   :-1,  1]
 
-    def graph_generation(self):
+        link_length = np.array([1,np.sqrt(2),1,np.sqrt(2),1,np.sqrt(2),1,np.sqrt(2)])
+        self.link_cost = ((np.max(self.link_cost)-self.link_cost)*link_length)/2
+        # TODO get h*w*3 cost_graph 
+        self.cost_graph[1::3,2::3,:]=self.link_cost[:,:,:1]\
+                +np.zeros(self.dim)
+        self.cost_graph[ ::3,2::3,:]=self.link_cost[:,:,1:2]\
+                +np.zeros(self.dim)
+        self.cost_graph[ ::3,1::3,:]=self.link_cost[:,:,2:3]\
+                +np.zeros(self.dim)
+        self.cost_graph[ ::3, ::3,:]=self.link_cost[:,:,3:4]\
+                +np.zeros(self.dim)
+        self.cost_graph[1::3, ::3,:]=self.link_cost[:,:,4:5]\
+                +np.zeros(self.dim)
+        self.cost_graph[2::3, ::3,:]=self.link_cost[:,:,5:6]\
+                +np.zeros(self.dim)
+        self.cost_graph[2::3,1::3,:]=self.link_cost[:,:,6:7]\
+                +np.zeros(self.dim)
+        self.cost_graph[2::3,2::3,:]=self.link_cost[:,:,7:8]\
+                +np.zeros(self.dim)
+        self.cost_graph[1::3,1::3,:]=self.img
+        cv2.imwrite("../images/cost_graph.png",self.cost_graph)
+
+    def cost_map_generation(self):
         while len(self.pq)>0:
             prev_pop = self.pq.popitem()
             prev_node_key = prev_pop[0]
@@ -126,11 +149,11 @@ class IntelligentScissor():
                             self.prev_dict[self.coordinate2key(n_pose)]=prev_node
                             self.set_cost(n_pose, prev_cost+prev_link_cost[i])
 
-        #print (self.costs)
-        #print (np.max(self.costs))
+        print (self.costs)
+        print (np.max(self.costs))
         #plt.imshow(self.costs)
         #plt.show()
-        #cv2.imwrite("../images/costs2.png", self.costs/np.max(self.costs)*255)
+        cv2.imwrite("../images/costs2.png", self.costs/np.max(self.costs)*255)
 
     def get_neighbor_nodes(self, pose):
         row = pose[0]
@@ -149,11 +172,11 @@ class IntelligentScissor():
         #self.prevNode = prevNode
 
 if __name__=="__main__":
-    #img = cv2.imread("../images/test2.jpeg", cv2.IMREAD_GRAYSCALE)
-    img = cv2.imread("../images/test2.jpeg")
+    #img = cv2.imread("../images/test2.jpg", cv2.IMREAD_GRAYSCALE)
+    img = cv2.imread("../images/test3.jpeg")
     #img = cv2.resize(img, (15,15))
-    seed = (150,130)
+    seed = (100,130)
     obj = IntelligentScissor(img, seed)
     obj.link_calculation()
-    obj.graph_generation()
-    obj.get_path((120,10))
+    obj.cost_map_generation()
+    obj.get_path((100,240))
