@@ -111,3 +111,5 @@ ipython
 *ipynb*
 
 output
+#!images/
+images/*.png

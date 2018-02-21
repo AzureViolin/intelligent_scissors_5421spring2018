@@ -27,18 +27,18 @@ class IntelligentScissor():
         self.width = img.shape[1]
         self.img = img.reshape(self.height, self.width, -1).astype(np.float32)
         self.dim = self.img.shape[2]
-        self.pad_img = np.lib.pad(self.img, ((1,1),(1,1),(0,0)), 'reflect')
+        self.pad_img = np.lib.pad(self.img, ((1,1),(1,1),(0,0)), 'constant', constant_values=0)
         self.seed = seed
 
-        self.states = np.zeros((self.height, self.width),
-                dtype=np.int32)  # 0 INITIAL, 1 ACTIVE, 2 EXPANDED
-        self.costs = np.zeros((self.height, self.width),
-                dtype=np.float32)
+        #self.states = np.zeros((self.height, self.width),
+                #dtype=np.int32)  # 0 INITIAL, 1 ACTIVE, 2 EXPANDED
+        #self.costs = np.zeros((self.height, self.width),
+                #dtype=np.float32)
         self.link_cost = np.zeros((self.height, self.width, 8),
                 dtype=np.float32)
         self.cost_graph=np.zeros((self.height*3, self.width*3, self.dim),
                 dtype=np.float32)
-        self.prev_dict = {}
+        #self.prev_dict = {}
         self.node_dict = {}
 
         self.INITIAL =0
@@ -48,7 +48,7 @@ class IntelligentScissor():
         self.pq = heapdict()
         self.pq[self.coordinate2key(self.seed)] = 0
         self.link_calculation()
-        self.prev_dict[self.coordinate2key(self.seed)]=None
+        #self.prev_dict[self.coordinate2key(self.seed)]=None
         #self.set_cost(self.seed, 0)
 
     def coordinate2key(self, pose):
@@ -56,32 +56,33 @@ class IntelligentScissor():
         return str(pose[0])+'_'+str(pose[1])
 
     def key2coordinate(self, key):
-        return (int(key[:3]), int(key[-3:]))
+        coor = key.split("_")
+        return (int(coor[0]), int(coor[1]))
 
-    def get_state(self, pose):
-        return self.states[pose[0]][pose[1]]
+    #def get_state(self, pose):
+        #return self.states[pose[0]][pose[1]]
 
-    def set_state(self, pose, state):
-        self.states[pose[0]][pose[1]] = state
+    #def set_state(self, pose, state):
+        #self.states[pose[0]][pose[1]] = state
 
-    def set_cost(self, pose, cost):
-        self.costs[pose[0]][pose[1]] = cost
+    #def set_cost(self, pose, cost):
+        #self.costs[pose[0]][pose[1]] = cost
 
     def get_path(self, pose):
         path = []
         #TODO more elegent way to switch row & column
+        path.append(pose)
         pose = (pose[1],pose[0])
         next_pose = pose
-        path.append(next_pose)
         next_pose_key = self.coordinate2key(next_pose)
         while self.node_dict[next_pose_key].prev_node != None:
             new_pose_node = self.node_dict[self.node_dict[next_pose_key].prev_node]
-            new_pose = new_pose_node.pose
-            path.append(new_pose)
-            cv2.line(self.img,
-                    (next_pose[1],next_pose[0]),
-                    (new_pose[1],new_pose[0]),
-                    (255,0,0))
+            new_pose = self.key2coordinate(self.node_dict[next_pose_key].prev_node)
+            path.append((new_pose[1],new_pose[0]))
+            #cv2.line(self.img,
+                    #(next_pose[1],next_pose[0]),
+                    #(new_pose[1],new_pose[0]),
+                    #(255,0,0))
             next_pose = new_pose
             next_pose_key = new_pose_node.prev_node
         cv2.imwrite("../output/path.png", self.img)
@@ -128,7 +129,7 @@ class IntelligentScissor():
                 +np.zeros(self.dim)
         self.cost_graph[1::3,1::3,:]=self.img
         cv2.imwrite("../output/cost_graph.png",self.cost_graph)
-
+        return self.cost_graph
 
     #def cost_map_generation(self):
         #start = time.time()
@@ -163,25 +164,23 @@ class IntelligentScissor():
 
 
     def cost_map_generation(self):
-        start = time.time()
+        start_all=time.time()
         while len(self.pq)>0:
             prev_pop = self.pq.popitem() # time consuming part
             prev_node_key = prev_pop[0]
             prev_cost = prev_pop[1]
-            #prev_node = self.key2coordinate(prev_node_key) # time consuming
-            #self.set_state(prev_node, self.EXPAND) # time consuming part
-            #prev_link_cost = self.link_cost[prev_node[0]][prev_node[1]]
 
             prev_node = self.node_dict[prev_node_key]
             prev_node.state = self.EXPAND
-            prev_link_cost = prev_node.link_cost
+            #prev_link_cost = prev_node.link_cost
             self.node_dict[prev_node_key] = prev_node
-            for (i,n_pose) in enumerate(prev_node.neighbours):
+            for n_pose in prev_node.neighbours:
                 if n_pose[1]>=0 and n_pose[1]<self.height and \
                         n_pose[2]>=0 and n_pose[2]<self.width:
                     n_pose_node = self.node_dict[n_pose[0]]
                     n_pose_state = n_pose_node.state
-                    new_cost = prev_cost+prev_link_cost[i]
+                    #new_cost = prev_cost+prev_link_cost[i]
+                    new_cost = prev_cost+n_pose[3]
                     if n_pose_state==self.INITIAL:
                         self.pq[n_pose[0]]=new_cost
                         n_pose_node.state = self.ACTIVE
@@ -193,53 +192,62 @@ class IntelligentScissor():
                             n_pose_node.prev_node = prev_node_key
                             self.node_dict[n_pose[0]]=n_pose_node
         end = time.time()
-        print ("total map time", end-start)
-        cv2.imwrite("../output/costs2.png", self.costs/np.max(self.costs)*255)
+        print ("total map time", end-start_all)
+        #cv2.imwrite("../output/costs2.png", self.costs/np.max(self.costs)*255)
 
-    def get_neighbor_nodes(self, pose):
-        row = pose[0]
-        column = pose[1]
-        return [(row  ,  column+1),
-                (row-1,  column+1),
-                (row-1,  column  ),
-                (row-1,  column-1),
-                (row  ,  column-1),
-                (row+1,  column-1),
-                (row+1,  column  ),
-                (row+1,  column+1)]
+    #def get_neighbor_nodes(self, pose):
+        #row = pose[0]
+        #column = pose[1]
+        #return [(row  ,  column+1),
+                #(row-1,  column+1),
+                #(row-1,  column  ),
+                #(row-1,  column-1),
+                #(row  ,  column-1),
+                #(row+1,  column-1),
+                #(row+1,  column  ),
+                #(row+1,  column+1)]
 
-    def get_neighbor_node_keys(self, pose):
+    def get_neighbor_node_keys(self, pose, link_cost):
         row = pose[0]
         column = pose[1]
         return [[self.coordinate2key((row  ,  column+1)),
-            row, column+1],
+            row,   column+1, link_cost[0]],
                 [self.coordinate2key((row-1,  column+1)),
-            row-1, column+1],
+            row-1, column+1, link_cost[1]],
                 [self.coordinate2key((row-1,  column  )),
-            row-1, column],
+            row-1, column,   link_cost[2]],
                 [self.coordinate2key((row-1,  column-1)),
-            row-1, column-1],
+            row-1, column-1, link_cost[3]],
                 [self.coordinate2key((row  ,  column-1)),
-            row, column-1],
+            row,   column-1, link_cost[4]],
                 [self.coordinate2key((row+1,  column-1)),
-            row+1, column-1],
+            row+1, column-1, link_cost[5]],
                 [self.coordinate2key((row+1,  column  )),
-            row+1, column],
+            row+1, column,   link_cost[6]],
                 [self.coordinate2key((row+1,  column+1)),
-            row+1, column+1]]
+            row+1, column+1, link_cost[7]]]
 
     def generate_all_node_dict(self):
+        #link_cost_dict = dict(enumerate(self.link_cost.reshape(self.height*self.width, 8)))
         for i in range(self.height):
             for j in range(self.width):
-                self.node_dict[self.coordinate2key((i,j))] = PQ_Node(None, self.INITIAL, self.link_cost[i][j], self.get_neighbor_node_keys((i,j)), (i,j))
+                self.node_dict[self.coordinate2key((i,j))]=\
+                        PQ_Node(None, self.INITIAL, self.get_neighbor_node_keys((i,j), self.link_cost[i][j]))
+                        #PQ_Node(None, self.INITIAL, link_cost_dict[self.width*i+j], self.get_neighbor_node_keys((i,j)))
 
 class PQ_Node():
-    def __init__(self, prev_node, state, link_cost, neighbours, pose):
+    #def __init__(self, prev_node, state, link_cost, neighbours):
+    def __init__(self, prev_node, state, neighbours):
         self.prev_node = prev_node
         self.state = state
-        self.link_cost = link_cost
+        #self.link_cost = link_cost
         self.neighbours = neighbours
-        self.pose = pose
+        #self.pose = pose
+#class NB_Node():
+    #def __init__(self, key, row, column):
+        #self.key = key
+        #self.row = row
+        #self.row = column
 
 if __name__=="__main__":
     #img = cv2.imread("../images/test2.jpg", cv2.IMREAD_GRAYSCALE)
