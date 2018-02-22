@@ -8,7 +8,7 @@ Info:
 
 import numpy as np
 import queue
-from heapdict import heapdict
+from heapq import *
 import time
 
 class IntelligentScissor():
@@ -44,8 +44,12 @@ class IntelligentScissor():
         self.ACTIVE  =1
         self.EXPAND  =2
 
-        self.pq = heapdict()
-        self.pq[self.coordinate2key(self.seed)] = 0
+        #self.pq = heapdict()
+        self.pq = []
+
+        #self.pq[self.coordinate2key(self.seed)] = 0
+        heappush(self.pq, (0, self.coordinate2key(self.seed)))
+
         self.link_calculation()
         #self.prev_dict[self.coordinate2key(self.seed)]=None
         #self.set_cost(self.seed, 0)
@@ -166,11 +170,17 @@ class IntelligentScissor():
 
     def cost_map_generation(self):
         while len(self.pq)>0:
-            prev_pop = self.pq.popitem()
-            prev_node_key = prev_pop[0]
-            prev_cost = prev_pop[1]
+            #prev_pop = self.pq.popitem()
+            #prev_node_key = prev_pop[0]
+            #prev_cost = prev_pop[1]
+            prev_pop = heappop(self.pq)
+            prev_node_key = prev_pop[1]
+            prev_cost = prev_pop[0]
+
 
             prev_node_obj = self.node_dict[prev_node_key]
+            if prev_node_obj.state == self.EXPAND:
+                continue
             prev_node_obj.state = self.EXPAND
             self.node_dict[prev_node_key] = prev_node_obj
             for n_pose in prev_node_obj.neighbours:
@@ -180,15 +190,19 @@ class IntelligentScissor():
                     continue
                 elif n_pose_state==self.INITIAL:
                     new_cost = prev_cost+n_pose[1]
-                    self.pq[n_pose[0]]=new_cost
+                    #self.pq[n_pose[0]]=new_cost
+                    heappush(self.pq, (new_cost, n_pose[0]))
                     n_pose_node.state = self.ACTIVE
+                    n_pose_node.cost = new_cost
                     n_pose_node.prev_node = prev_node_key
                     self.node_dict[n_pose[0]]=n_pose_node
                 elif n_pose_state==self.ACTIVE:
                     new_cost = prev_cost+n_pose[1]
-                    if self.pq[n_pose[0]]>new_cost:
-                        self.pq[n_pose[0]]=new_cost
+                    old_cost = self.node_dict[n_pose[0]].cost
+                    if old_cost>new_cost:
+                        heappush(self.pq, (new_cost, n_pose[0]))
                         n_pose_node.prev_node = prev_node_key
+                        n_pose_node.cost = new_cost
                         self.node_dict[n_pose[0]]=n_pose_node
         
         #end = time.time()
@@ -223,22 +237,23 @@ class IntelligentScissor():
         for i in range(1,self.height-1):
             for j in range(1,self.width-1):
                 self.node_dict[self.coordinate2key((i,j))]=\
-                        PQ_Node(None, self.INITIAL, self.get_neighbor_node_keys((i,j), self.link_cost[i][j]))
+                        PQ_Node(None, self.INITIAL, self.get_neighbor_node_keys((i,j), self.link_cost[i][j]), 0)
         # Initial all the border point as EXPAND
         for i in [0, self.height-1]:
             for j in range(self.width):
                 self.node_dict[self.coordinate2key((i,j))]=\
-                        PQ_Node(None, self.EXPAND, None)
+                        PQ_Node(None, self.EXPAND, None, 0)
         for i in range(self.height):
             for j in [0, self.width-1]:
                 self.node_dict[self.coordinate2key((i,j))]=\
-                        PQ_Node(None, self.EXPAND, None)
+                        PQ_Node(None, self.EXPAND, None, 0)
 
 class PQ_Node():
-    def __init__(self, prev_node, state, neighbours):
+    def __init__(self, prev_node, state, neighbours, cost):
         self.prev_node = prev_node
         self.state = state
         self.neighbours = neighbours
+        self.cost = cost
 
 if __name__=="__main__":
     import cv2
