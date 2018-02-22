@@ -135,6 +135,19 @@ class IntelligentScissor():
                         n_pose_node.cost = new_cost
                         self.node_dict[n_pose[0]]=n_pose_node
 
+
+    def get_neighbor_nodes(self, pose):
+        row = pose[0]
+        column = pose[1]
+        return [(row  ,  column+1),
+                (row-1,  column+1),
+                (row-1,  column  ),
+                (row-1,  column-1),
+                (row  ,  column-1),
+                (row+1,  column-1),
+                (row+1,  column  ),
+                (row+1,  column+1)]
+
     def get_neighbor_node_keys(self, pose, link_cost):
         row = pose[0]
         column = pose[1]
@@ -182,6 +195,7 @@ class IntelligentScissor():
 
     def generate_mask(self, path_point):
         dq = deque()
+
         self.mask = np.zeros((self.height, self.width),dtype=np.int32)
         for item in path_point:
             self.mask[item[1]][item[0]]==2
@@ -192,6 +206,8 @@ class IntelligentScissor():
             seed_y = np.random.randint(1, self.width-1)
         dq.append((seed_x, seed_y))
         while dq.count > 0:
+            root_node = dq.popleft()
+            #for (i, n_pose) in enumerate(self.get_neighbor_nodes(root_node)):
 
 
 
