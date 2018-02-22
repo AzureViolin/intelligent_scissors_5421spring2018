@@ -166,11 +166,33 @@ def set_color(newcolor):
     canvas.addtag('paletteSelected', 'withtag', 'palette%s' % color)
     canvas.itemconfigure('paletteSelected', outline='#999999')
 
+def save_contour():
+    return
+
+def save_mask():
+    return
 
 root = Tk()
 root.title('Intelligent Scissors by Lei & Hao HKUST COMP5421 Spring 2018')
 root.grid_columnconfigure(0, weight=1)
 root.grid_rowconfigure(0, weight=1)
+
+#menu
+menubar = Menu(root)
+filemenu = Menu(menubar, tearoff = 0)
+filemenu.add_command(label="Open Image", command = open_image)
+filemenu.add_separator()
+filemenu.add_command(label="Save Contour", command = save_contour)
+filemenu.add_command(label="Save Mask", command = save_mask)
+filemenu.add_separator()
+filemenu.add_command(label="Exit", command = root.quit)
+menubar.add_cascade(label="File", menu=filemenu)
+
+toolmenu = Menu(menubar, tearoff = 0)
+toolmenu.add_command(label = "Scissor")
+menubar.add_cascade(label="Tool", menu=toolmenu)
+
+root.configure(menu = menubar)
 
 #frame
 mainframe = ttk.Frame(root,padding='20', borderwidth = '8')
@@ -201,7 +223,7 @@ h.grid(column=0, row=4, columnspan = 4, sticky=(W,E))
 v.grid(column=4, row=0, rowspan = 4,  sticky=(N,S))
 
 #button
-button_open_image = ttk.Button(mainframe, text = 'open image', command = open_image).grid(column=5,row=0, sticky=(E,N))
+#button_open_image = ttk.Button(mainframe, text = 'open image', command = open_image).grid(column=5,row=0, sticky=(E,N))
 
 #size grip
 ttk.Sizegrip(root).grid(column=1, row=1, sticky=(S,E))
