@@ -55,7 +55,8 @@ class IntelligentScissor():
 
     def coordinate2key(self, pose):
         #return str(pose[0]).zfill(3)+'_'+str(pose[1]).zfill(3)
-        return str(pose[0])+'_'+str(pose[1])
+        #return str(pose[0])+'_'+str(pose[1])
+        return self.width*pose[0]+pose[1]
 
     def key2coordinate(self, key):
         coor = key.split("_")
@@ -207,17 +208,29 @@ class IntelligentScissor():
                 #(row+1,  column  ),
                 #(row+1,  column+1)]
 
+    #def get_neighbor_node_keys(self, pose, link_cost):
+        #row = pose[0]
+        #column = pose[1]
+        #return [[self.coordinate2key((row  ,  column+1)), link_cost[0]],
+                #[self.coordinate2key((row-1,  column+1)), link_cost[1]],
+                #[self.coordinate2key((row-1,  column  )), link_cost[2]],
+                #[self.coordinate2key((row-1,  column-1)), link_cost[3]],
+                #[self.coordinate2key((row  ,  column-1)), link_cost[4]],
+                #[self.coordinate2key((row+1,  column-1)), link_cost[5]],
+                #[self.coordinate2key((row+1,  column  )), link_cost[6]],
+                #[self.coordinate2key((row+1,  column+1)), link_cost[7]]]
+
     def get_neighbor_node_keys(self, pose, link_cost):
         row = pose[0]
         column = pose[1]
-        return [[self.coordinate2key((row  ,  column+1)), link_cost[0]],
-                [self.coordinate2key((row-1,  column+1)), link_cost[1]],
-                [self.coordinate2key((row-1,  column  )), link_cost[2]],
-                [self.coordinate2key((row-1,  column-1)), link_cost[3]],
-                [self.coordinate2key((row  ,  column-1)), link_cost[4]],
-                [self.coordinate2key((row+1,  column-1)), link_cost[5]],
-                [self.coordinate2key((row+1,  column  )), link_cost[6]],
-                [self.coordinate2key((row+1,  column+1)), link_cost[7]]]
+        return [(row*self.width+column+1, link_cost[0]),
+                ((row-1)*self.width+column+1, link_cost[1]),
+                ((row-1)*self.width+column, link_cost[2]),
+                ((row-1)*self.width+column-1, link_cost[3]),
+                (row*self.width+column-1, link_cost[4]),
+                ((row+1)*self.width+column-1, link_cost[5]),
+                ((row+1)*self.width+column, link_cost[6]),
+                ((row+1)*self.width+column+1, link_cost[7])]
 
     def generate_all_node_dict(self):
         for i in range(1,self.height-1):
@@ -242,8 +255,8 @@ class PQ_Node():
 
 if __name__=="__main__":
     import cv2
-    img = cv2.imread("../images/test2.jpg", cv2.IMREAD_GRAYSCALE)
-    #img = cv2.imread("../images/test3.jpeg")
+    #img = cv2.imread("../images/test2.jpg", cv2.IMREAD_GRAYSCALE)
+    img = cv2.imread("../images/test3.jpeg")
     #img = cv2.resize(img, (15,15))
     seed = (240,199)
     obj = IntelligentScissor(img, seed)
