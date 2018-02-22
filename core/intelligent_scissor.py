@@ -37,7 +37,6 @@ class IntelligentScissor():
                 dtype=np.float32)
         self.cost_graph=np.zeros((self.height*3, self.width*3, self.dim),
                 dtype=np.float32)
-        #self.prev_dict = {}
         self.node_dict = {}
 
         self.INITIAL =0
@@ -61,15 +60,6 @@ class IntelligentScissor():
     def key2coordinate(self, key):
         coor = key.split("_")
         return (int(coor[0]), int(coor[1]))
-
-    #def get_state(self, pose):
-        #return self.states[pose[0]][pose[1]]
-
-    #def set_state(self, pose, state):
-        #self.states[pose[0]][pose[1]] = state
-
-    #def set_cost(self, pose, cost):
-        #self.costs[pose[0]][pose[1]] = cost
 
     def get_path(self, pose):
         path = []
@@ -204,10 +194,6 @@ class IntelligentScissor():
                         n_pose_node.prev_node = prev_node_key
                         n_pose_node.cost = new_cost
                         self.node_dict[n_pose[0]]=n_pose_node
-        
-        #end = time.time()
-        #print ("total map time", end-start_all)
-        #cv2.imwrite("../output/costs2.png", self.costs/np.max(self.costs)*255)
 
     #def get_neighbor_nodes(self, pose):
         #row = pose[0]
@@ -238,7 +224,6 @@ class IntelligentScissor():
             for j in range(1,self.width-1):
                 self.node_dict[self.coordinate2key((i,j))]=\
                         PQ_Node(None, self.INITIAL, self.get_neighbor_node_keys((i,j), self.link_cost[i][j]), 0)
-        # Initial all the border point as EXPAND
         for i in [0, self.height-1]:
             for j in range(self.width):
                 self.node_dict[self.coordinate2key((i,j))]=\
