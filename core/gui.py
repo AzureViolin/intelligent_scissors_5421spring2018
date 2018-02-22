@@ -50,7 +50,7 @@ def open_image():
     obj = IntelligentScissor(cvimg)
 
 def seed_to_graph(seed_x,seed_y):
-    global obj
+    #global obj
     obj.update_seed((seed_x, seed_y))
     start_time = time.time()
     print('cost_map_generation')
