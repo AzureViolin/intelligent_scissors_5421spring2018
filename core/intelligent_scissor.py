@@ -50,16 +50,13 @@ class IntelligentScissor():
         path = []
         path.append(pose)
         pose = (pose[1],pose[0])
-        #self.mask[pose[0]][pose[1]]==2
         pose_key = self.coordinate2key(pose)
         while self.node_dict[pose_key].prev_node != None:
             new_pose_key = self.node_dict[pose_key].prev_node 
             new_pose_node = self.node_dict[new_pose_key]
             new_pose = self.key2coordinate(new_pose_key)
             path.append((new_pose[1],new_pose[0]))
-            #self.mask[new_pose[0]][new_pose[1]]==2
             pose_key = new_pose_key
-        #self.all_path = self.all_path+path
         return path
 
     def link_calculation(self):
@@ -179,14 +176,12 @@ class IntelligentScissor():
         seed_key = self.coordinate2key(seed) 
         seed_node = self.node_dict[seed_key]
         seed_node.prev_node = None
-        #seed_node.state = self.ACTIVE
         self.node_dict[seed_key] = seed_node
 
     def update_node_dict(self):
         for key in self.node_dict:
             node_ = self.node_dict[key]
             node_.state = self.INITIAL
-            #node_.prev_node = None 
             self.node_dict[key]=node_
         self.margin_node_update()
 
@@ -207,14 +202,11 @@ class IntelligentScissor():
                         PQ_Node(None, self.BORDER, None, 0)
 
     def generate_mask(self, path_point):
-        #self.all_path = []
-        self.mask = np.zeros((self.height, self.width),dtype=np.int32)
+        mask = np.zeros((self.height, self.width),dtype=np.int32)
         dq = deque()
         inside_flag = False
-        #print (path_point)
         self.update_node_dict()
         self.update_path_dict(path_point)
-        #mask = np.zeros((self.height, self.width),dtype=np.int32)
         seed_row = np.random.randint(1, self.height-1)
         seed_column = np.random.randint(1, self.width-1)
         seed_key = self.coordinate2key((seed_row, seed_column))
@@ -223,31 +215,28 @@ class IntelligentScissor():
             seed_column = np.random.randint(1, self.width-1)
             seed_key = self.coordinate2key((seed_row, seed_column))
         dq.append(seed_key)
-        while dq.count() > 0:
+        while len(dq) > 0:
             root_key = dq.popleft()
             root_node = self.node_dict[root_key]
-            root_row = root_key/self.width
+            root_row = root_key//self.width
             root_column = root_key%self.width
-            mask[root_row][root_key]=1
-            
-            root_node.state = self.ACTIVE
+            mask[root_row][root_column]=1
             self.node_dict[root_key] = root_node
-            # NOTE only check the horizental or vertical neighbors 
-            neighbours_ = self.node_dict[self.coordinate2key(root_node)].neighbors[::2]
-            for n_pose in neighbours_:
-                n_pose_node = self.node_dict[n_pose]
+            for n_pose in root_node.neighbours[::2]:
+                n_pose_node = self.node_dict[n_pose[0]]
                 n_pose_state = n_pose_node.state
-                
                 if n_pose_state == self.INITIAL:
-                    dq.append(n_pose)
-                elif inside_flag == False and self.state==self.EXPAND:
-                    inside_flag == True
+                    dq.append(n_pose[0])
+                    n_pose_node.state = self.ACTIVE
+                    self.node_dict[n_pose[0]] = n_pose_node
+                elif ((inside_flag == False) and (n_pose_state==self.EXPAND)):
+                    inside_flag = True
                     continue
                 else:
                     continue
-        import matplotlib.pyplot as plt
-        plt.imshow(mask)
-        plt.show()
+        if inside_flag == True:
+            mask = 1-mask
+        return mask
 
 class PQ_Node():
     def __init__(self, prev_node, state, neighbours, cost):
