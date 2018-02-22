@@ -78,7 +78,7 @@ def close_contour_finish(event):
         remove_canvas_path(canvas_path)
         canvas_path.clear()
         draw_path(startx,starty)
-        canvas_path_stack.append(canvas_path)
+        canvas_path_stack.append(canvas_path[:])
 
         canvas_path_label.configure(text = '{0}th canvas_path: {1}'.format(i,canvas_path))
         #path_stack_label.configure(text='path_stack {0}: {1}'.format(i, canvas_path_stack[i]))
@@ -114,8 +114,8 @@ def click_xy(event):
         canvas_path_label.configure(text='path_stack before append {0}: {1}'.format(i, canvas_path_stack))
         #path_stack_label.configure(text='path_stack {0}: {1}'.format(i, canvas_path_stack[0]))
         #path_stack_label.configure(text='path_stack after {0}: {1}'.format(i, canvas_path_stack))
-        #canvas_path_stack.append(canvas_path)
-        canvas_path_stack.append('test {0}'.format(i))
+        canvas_path_stack.append(canvas_path[:])
+        #canvas_path_stack.append('test {0}'.format(i))
         #path_stack_label.configure(text='path_stack {0}: {1}'.format(i, canvas_path_stack[0]))
         path_stack_label.configure(text='path_stack after append {0}: {1}'.format(i, canvas_path_stack))
         i = i + 1
