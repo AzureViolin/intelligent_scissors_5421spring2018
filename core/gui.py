@@ -45,6 +45,7 @@ def open_image():
         cvimg = np.array(Image.open("../images/test.jpg"))
         canvas.create_image(0,0, image=image, anchor=NW)
     else :
+        #TODO get current path
         file_name = filedialog.askopenfilename(initialdir = '../images')
         image = ImageTk.PhotoImage(file=file_name)
         #cvimg = cv2.imread(file_name)
@@ -56,10 +57,10 @@ def seed_to_graph(seed_x,seed_y):
     #global obj
     obj.update_seed((seed_x, seed_y))
     start_time = time.time()
-    print('cost_map_generation')
+    #print('cost_map_generation')
     obj.cost_map_generation()
     print('cost map generation time:', time.time() - start_time)
-    print('cost map generation COMPLETED')
+    #print('cost map generation COMPLETED')
 
 def start(event):
     global lastx, lasty, startx, starty, start_flag, xy_stack
@@ -83,10 +84,10 @@ def close_contour_finish(event):
         path = obj.get_path((int(startx),int(starty)))
         history_paths.append(path[:])
 
-        #canvas_path_label.configure(text = '{0}th canvas_path: {1}'.format(i,canvas_path))
-        canvas_path_label.configure(text = 'current history_paths: {1}'.format(i,history_paths))
-        #path_stack_label.configure(text='path_stack {0}: {1}'.format(i, canvas_path_stack[i]))
-        path_stack_label.configure(text='path_stack after {0}: {1}'.format(i, canvas_path_stack))
+        #path_label.configure(text = '{0}th canvas_path: {1}'.format(i,canvas_path))
+        path_label.configure(text = 'closing path: {1}'.format(i,path))
+        #history_paths_label.configure(text='path_stack {0}: {1}'.format(i, canvas_path_stack[i]))
+        history_paths_label.configure(text='closed history_paths : {1}'.format(i, history_paths))
         i = i + 1
 
         canvas_path.clear()
@@ -94,7 +95,8 @@ def close_contour_finish(event):
 
         xy_stack.append([startx,starty,canvas_id])
         stack_label.configure(text=xy_stack)
-        obj.generate_mask(history_paths)
+        #TODO uncomment to integrate
+        #obj.generate_mask(history_paths)
     else:
         print('Warning: end() is called before start()')
 
@@ -117,14 +119,14 @@ def click_xy(event):
         draw_path(x,y)
         path = obj.get_path((int(x),int(y)))
         history_paths.append(path[:])
-        #canvas_path_label.configure(text = '{0}th canvas_path: {1}'.format(i,canvas_path))
-        canvas_path_label.configure(text='path_stack before append {0}: {1}'.format(i, canvas_path_stack))
-        #path_stack_label.configure(text='path_stack {0}: {1}'.format(i, canvas_path_stack[0]))
-        #path_stack_label.configure(text='path_stack after {0}: {1}'.format(i, canvas_path_stack))
+        path_label.configure(text = '{0}th path: {1}'.format(i,path))
+        #path_label.configure(text='path_stack before append {0}: {1}'.format(i, canvas_path_stack))
+        #history_paths_label.configure(text='path_stack {0}: {1}'.format(i, canvas_path_stack[0]))
+        #history_paths_label.configure(text='path_stack after {0}: {1}'.format(i, canvas_path_stack))
         canvas_path_stack.append(canvas_path[:])
         #canvas_path_stack.append('test {0}'.format(i))
-        #path_stack_label.configure(text='path_stack {0}: {1}'.format(i, canvas_path_stack[0]))
-        path_stack_label.configure(text='path_stack after append {0}: {1}'.format(i, canvas_path_stack))
+        #history_paths_label.configure(text='path_stack {0}: {1}'.format(i, canvas_path_stack[0]))
+        history_paths_label.configure(text='history_paths after {0}th append: {1}'.format(i, history_paths))
         i = i + 1
         canvas_path.clear()
 
@@ -140,20 +142,22 @@ def click_xy(event):
     debug3_label.configure(text='lastx:{0} lasty:{1}'.format(lastx,lasty))
 
 def delete_path(event):
-    global canvas_id, lastx, lasty, start_flag
+    global canvas_id, lastx, lasty, start_flag, canvas_path
     #[popx, popy, pop_id] = xy_stack[-1]
     if start_flag == True:
         [popx, popy, pop_id] = xy_stack.pop()
         stack_label.configure(text=xy_stack)
         canvas_path_to_be_removed = canvas_path_stack.pop()
-        canvas_path_label.configure(text = '{0}th canvas_path: {1}'.format(i,canvas_path_to_be_removed))
-        path_stack_label.configure(text='path_stack after pop {0}: {1}'.format(i, canvas_path_stack))
+        path_label.configure(text = 'canvas_path to be removed: {1}'.format(i,canvas_path_to_be_removed))
+        history_paths_label.configure(text='path_stack after pop {0}: {1}'.format(i, canvas_path_stack))
         if pop_id == -99 :
             start_flag = False
+            remove_canvas_path(canvas_path)
         else :
             #delete point in stack
             canvas.delete(pop_id)
             [lastx, lasty, canvas_id] = xy_stack[-1]
+            seed_to_graph(lastx,lasty)
             #delete drawn path on canvas
             remove_canvas_path(canvas_path_to_be_removed)
 
@@ -162,6 +166,9 @@ def delete_path(event):
             debug_label.configure(text='canvas_id:{0}'.format(canvas_id))
             debug2_label.configure(text='removed_id:{0}'.format(pop_id))
             debug3_label.configure(text='lastx:{0} lasty:{1}'.format(lastx,lasty))
+    else:
+        print('please move cursor inside an existing contour to delete')
+        #TODO select existing contour and delete it
 
 def get_xy(event):
     global cursor_x, cursor_y, cursor_label, canvas_id, lastx, lasty, canvas_path
@@ -178,8 +185,8 @@ def get_xy(event):
         #draw new path on canvas
         draw_path(cursor_x,cursor_y)
         path = obj.get_path((int(cursor_x),int(cursor_y)))
-    #canvas_path_label.configure(text = 'current canvas_path: {1}'.format(i,canvas_path))
-        canvas_path_label.configure(text = 'current path: {1}'.format(i,path))
+    #path_label.configure(text = 'current canvas_path: {1}'.format(i,canvas_path))
+        path_label.configure(text = 'current path: {1}'.format(i,path))
 
 def remove_canvas_path(canvas_path_to_be_removed):
     canvas_path_len = len(canvas_path_to_be_removed)
@@ -188,7 +195,7 @@ def remove_canvas_path(canvas_path_to_be_removed):
     #canvas_path_to_be_removed.clear()
 
 def draw_path(x,y):
-    global cursor_label, canvas_id, lastx, lasty, canvas_path, canvas_path_label
+    global cursor_label, canvas_id, lastx, lasty, canvas_path, path_label
     cursor_label.configure(text = 'getting path for x:{0} y:{1}'.format(cursor_x, cursor_y))
     path = obj.get_path((int(x),int(y)))
     set_color('red')
@@ -298,11 +305,11 @@ debug3_label.grid(column = 2, row = 5, sticky = (W,N))
 stack_label = ttk.Label(mainframe, text='<stack info>', wraplength = wrap_length, justify = 'left')
 stack_label.grid(column = 0, row = 6, columnspan = 4, sticky = (W,N))
 
-canvas_path_label = ttk.Label(mainframe, text='<canvas_path info>', wraplength = wrap_length, justify = 'left')
-canvas_path_label.grid(column = 0, row = 7, columnspan = 4, sticky = (W,N))
+path_label = ttk.Label(mainframe, text='<path info>', wraplength = wrap_length, justify = 'left')
+path_label.grid(column = 0, row = 7, columnspan = 4, sticky = (W,N))
 
-path_stack_label = ttk.Label(mainframe, text='<path stack info>', wraplength = wrap_length, justify = 'left')
-path_stack_label.grid(column = 0, row = 8, columnspan = 4, sticky = (W,N))
+history_paths_label = ttk.Label(mainframe, text='<path stack info>', wraplength = wrap_length, justify = 'left')
+history_paths_label.grid(column = 0, row = 8, columnspan = 4, sticky = (W,N))
 
 #Main function binding
 canvas.bind('<Button-1>', click_xy)
