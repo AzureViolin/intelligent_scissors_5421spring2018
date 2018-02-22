@@ -67,14 +67,19 @@ def start(event):
     seed_to_graph(startx,starty)
 
 def close_contour_finish(event):
-    global start_flag, canvas_id
+    global start_flag, canvas_id, canvas_path_stack
     print('close contour finish called')
     if (start_flag == True):
         #canvas_id = canvas.create_line((lastx, lasty, startx, starty), fill=color, width=1,tags='currentline')
         remove_canvas_path()
         draw_path(startx,starty)
+        canvas_path_stack.append(canvas_path)
         canvas_path.clear()
         start_flag = False
+
+        xy_stack.append([startx,starty,canvas_id])
+        stack_label.configure(text=xy_stack)
+        path_stack_label.configure(text=canvas_path_stack)
     else:
         print('Warning: end() is called before start()')
 
@@ -104,6 +109,7 @@ def click_xy(event):
         lastx, lasty = x, y
         xy_stack.append([x,y,canvas_id])
         stack_label.configure(text=xy_stack)
+        path_stack_label.configure(text=canvas_path_stack)
     debug_label.configure(text='start_flag:{0}'.format(start_flag))
     debug2_label.configure(text='line_id:{0}'.format(canvas_id))
     debug3_label.configure(text='lastx:{0} lasty:{1}'.format(lastx,lasty))
@@ -252,6 +258,8 @@ debug3_label = ttk.Label(mainframe, text='<debug3 info>')
 debug3_label.grid(column = 2, row = 5, sticky = (W,N))
 stack_label = ttk.Label(mainframe, text='<stack info>', wraplength = 600, justify = 'left')
 stack_label.grid(column = 0, row = 6, columnspan = 4, sticky = (W,N))
+path_stack_label = ttk.Label(mainframe, text='<path stack info>', wraplength = 1200, justify = 'left')
+path_stack_label.grid(column = 0, row = 7, columnspan = 4, sticky = (W,N))
 
 #Main function binding
 canvas.bind('<Button-1>', click_xy)

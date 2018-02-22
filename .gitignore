@@ -112,4 +112,4 @@ ipython
 
 output
 #!images/
-images/*.png
+#images/*.png
