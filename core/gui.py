@@ -183,7 +183,7 @@ def get_xy(event):
         draw_path(cursor_x,cursor_y)
         path = obj.get_path((int(cursor_x),int(cursor_y)))
     #canvas_path_label.configure(text = 'current canvas_path: {1}'.format(i,canvas_path))
-    canvas_path_label.configure(text = 'current path: {1}'.format(i,path))
+        canvas_path_label.configure(text = 'current path: {1}'.format(i,path))
 
 def remove_canvas_path(canvas_path_to_be_removed):
     canvas_path_len = len(canvas_path_to_be_removed)
