@@ -90,6 +90,7 @@ def close_contour_finish(event):
 
         xy_stack.append([startx,starty,canvas_id])
         stack_label.configure(text=xy_stack)
+        obj.generate_mask(history_paths)
     else:
         print('Warning: end() is called before start()')
 
