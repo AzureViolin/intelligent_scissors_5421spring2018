@@ -148,8 +148,9 @@ def delete_path(event):
         [popx, popy, pop_id] = xy_stack.pop()
         stack_label.configure(text=xy_stack)
         canvas_path_to_be_removed = canvas_path_stack.pop()
-        path_label.configure(text = 'canvas_path to be removed: {1}'.format(i,canvas_path_to_be_removed))
-        history_paths_label.configure(text='path_stack after pop {0}: {1}'.format(i, canvas_path_stack))
+        path_to_be_removed = history_paths.pop()
+        path_label.configure(text = 'path to be removed: {1}'.format(i,path_to_be_removed))
+        history_paths_label.configure(text='path_stack after pop: {1}'.format(i, history_paths))
         if pop_id == -99 :
             start_flag = False
             remove_canvas_path(canvas_path)
