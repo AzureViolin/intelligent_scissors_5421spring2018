@@ -23,6 +23,8 @@ start_flag = False
 lastx, lasty = 0, 0
 canvas_id = 0
 #startx, starty = 0, 0
+i = 0
+wrap_length = 1920
 
 #obj = IntelligentScissor(cvimg, (int(seed_x),int(seed_y)))
 #obj.link_calculation()
@@ -42,7 +44,7 @@ def open_image():
         cvimg = np.array(Image.open("../images/test.jpg"))
         canvas.create_image(0,0, image=image, anchor=NW)
     else :
-        file_name = filedialog.askopenfilename()
+        file_name = filedialog.askopenfilename(initialdir = '../images')
         image = ImageTk.PhotoImage(file=file_name)
         #cvimg = cv2.imread(file_name)
         cvimg = np.array(Image.open(file_name))
@@ -69,19 +71,25 @@ def start(event):
     seed_to_graph(startx,starty)
 
 def close_contour_finish(event):
-    global start_flag, canvas_id, canvas_path_stack
+    global start_flag, canvas_id, canvas_path_stack, canvas_path, i
     print('close contour finish called')
     if (start_flag == True):
         #canvas_id = canvas.create_line((lastx, lasty, startx, starty), fill=color, width=1,tags='currentline')
-        remove_canvas_path()
+        remove_canvas_path(canvas_path)
+        canvas_path.clear()
         draw_path(startx,starty)
         canvas_path_stack.append(canvas_path)
+
+        canvas_path_label.configure(text = '{0}th canvas_path: {1}'.format(i,canvas_path))
+        #path_stack_label.configure(text='path_stack {0}: {1}'.format(i, canvas_path_stack[i]))
+        path_stack_label.configure(text='path_stack after {0}: {1}'.format(i, canvas_path_stack))
+        i = i + 1
+
         canvas_path.clear()
         start_flag = False
 
         xy_stack.append([startx,starty,canvas_id])
         stack_label.configure(text=xy_stack)
-        path_stack_label.configure(text=canvas_path_stack)
     else:
         print('Warning: end() is called before start()')
 
@@ -91,7 +99,7 @@ def finish(event):
     print('finish called')
 
 def click_xy(event):
-    global lastx, lasty, start_flag, xy_stack, canvas_id, canvas_path
+    global lastx, lasty, start_flag, xy_stack, canvas_id, canvas_path, canvas_path_stack, i
     #print('event x y:{0} {1}'.format(event.x,event.y))
     #print('last  x y:{0} {1}'.format(lastx,lasty))
     if (start_flag == True):
@@ -102,7 +110,14 @@ def click_xy(event):
         #fix current path on canvas, start new seed
         #canvas_id = canvas.create_line((lastx, lasty, x, y), fill=color, width=1,tags='currentline')
         draw_path(x,y)
+        #canvas_path_label.configure(text = '{0}th canvas_path: {1}'.format(i,canvas_path))
+        canvas_path_label.configure(text='path_stack before append {0}: {1}'.format(i, canvas_path_stack))
+        #path_stack_label.configure(text='path_stack {0}: {1}'.format(i, canvas_path_stack[0]))
+        #path_stack_label.configure(text='path_stack after {0}: {1}'.format(i, canvas_path_stack))
         canvas_path_stack.append(canvas_path)
+        #path_stack_label.configure(text='path_stack {0}: {1}'.format(i, canvas_path_stack[0]))
+        path_stack_label.configure(text='path_stack after append {0}: {1}'.format(i, canvas_path_stack))
+        i = i + 1
         canvas_path.clear()
 
         #generate new graph with new seed
@@ -111,22 +126,29 @@ def click_xy(event):
         lastx, lasty = x, y
         xy_stack.append([x,y,canvas_id])
         stack_label.configure(text=xy_stack)
-        path_stack_label.configure(text=canvas_path_stack)
     debug_label.configure(text='start_flag:{0}'.format(start_flag))
     debug2_label.configure(text='line_id:{0}'.format(canvas_id))
     debug3_label.configure(text='lastx:{0} lasty:{1}'.format(lastx,lasty))
 
-def delete(event):
+def delete_path(event):
     global canvas_id, lastx, lasty, start_flag
     #[popx, popy, pop_id] = xy_stack[-1]
     if start_flag == True:
         [popx, popy, pop_id] = xy_stack.pop()
         stack_label.configure(text=xy_stack)
+        canvas_path_to_be_removed = canvas_path_stack.pop()
+        canvas_path_label.configure(text = '{0}th canvas_path: {1}'.format(i,canvas_path_to_be_removed))
+        path_stack_label.configure(text='path_stack after pop {0}: {1}'.format(i, canvas_path_stack))
         if pop_id == -99 :
             start_flag = False
         else :
+            #delete point in stack
             canvas.delete(pop_id)
             [lastx, lasty, canvas_id] = xy_stack[-1]
+            #delete drawn path on canvas
+            remove_canvas_path(canvas_path_to_be_removed)
+
+            #update debug info
             stack_label.configure(text=xy_stack)
             debug_label.configure(text='canvas_id:{0}'.format(canvas_id))
             debug2_label.configure(text='removed_id:{0}'.format(pop_id))
@@ -142,18 +164,20 @@ def get_xy(event):
     #print(cursor_x, cursor_y)
     if start_flag == True:
         #remove last path in canvas
-        remove_canvas_path()
+        remove_canvas_path(canvas_path)
+        canvas_path.clear()
         #draw new path on canvas
         draw_path(cursor_x,cursor_y)
+    canvas_path_label.configure(text = 'current canvas_path: {1}'.format(i,canvas_path))
 
-def remove_canvas_path():
-    canvas_path_len = len(canvas_path)
-    for line_id in canvas_path:
+def remove_canvas_path(canvas_path_to_be_removed):
+    canvas_path_len = len(canvas_path_to_be_removed)
+    for line_id in canvas_path_to_be_removed:
         canvas.delete(line_id)
-    canvas_path.clear()
+    #canvas_path_to_be_removed.clear()
 
 def draw_path(x,y):
-    global cursor_label, canvas_id, lastx, lasty, canvas_path
+    global cursor_label, canvas_id, lastx, lasty, canvas_path, canvas_path_label
     cursor_label.configure(text = 'getting path for x:{0} y:{1}'.format(cursor_x, cursor_y))
     path = obj.get_path((int(x),int(y)))
     set_color('red')
@@ -258,16 +282,22 @@ debug2_label = ttk.Label(mainframe, text='<debug2 info>')
 debug2_label.grid(column = 1, row = 5, sticky = (W,N))
 debug3_label = ttk.Label(mainframe, text='<debug3 info>')
 debug3_label.grid(column = 2, row = 5, sticky = (W,N))
-stack_label = ttk.Label(mainframe, text='<stack info>', wraplength = 600, justify = 'left')
+
+
+stack_label = ttk.Label(mainframe, text='<stack info>', wraplength = wrap_length, justify = 'left')
 stack_label.grid(column = 0, row = 6, columnspan = 4, sticky = (W,N))
-path_stack_label = ttk.Label(mainframe, text='<path stack info>', wraplength = 1200, justify = 'left')
-path_stack_label.grid(column = 0, row = 7, columnspan = 4, sticky = (W,N))
+
+canvas_path_label = ttk.Label(mainframe, text='<canvas_path info>', wraplength = wrap_length, justify = 'left')
+canvas_path_label.grid(column = 0, row = 7, columnspan = 4, sticky = (W,N))
+
+path_stack_label = ttk.Label(mainframe, text='<path stack info>', wraplength = wrap_length, justify = 'left')
+path_stack_label.grid(column = 0, row = 8, columnspan = 4, sticky = (W,N))
 
 #Main function binding
 canvas.bind('<Button-1>', click_xy)
 canvas.bind('<Control-Button-1>', start)
 root.bind('<Return>', finish)
-root.bind('<BackSpace>', delete)
+root.bind('<BackSpace>', delete_path)
 root.bind('<Control-Return>', close_contour_finish)
 canvas.bind('<Motion>', get_xy)
 #canvas.bind('<B1-Motion>', add_line)
