@@ -9,6 +9,7 @@ Info:
 import numpy as np
 import queue
 from heapq import *
+from collections import deque
 import time
 
 class IntelligentScissor():
@@ -23,7 +24,8 @@ class IntelligentScissor():
         self.width = img.shape[1]
         self.img = img.reshape(self.height, self.width, -1).astype(np.float32)
         self.dim = self.img.shape[2]
-        self.pad_img = np.lib.pad(self.img, ((1,1),(1,1),(0,0)), 'constant', constant_values=0)
+        self.pad_img = np.lib.pad(self.img, 
+                ((1,1),(1,1),(0,0)), 'constant', constant_values=0)
 
         self.link_cost = np.zeros((self.height, self.width, 8),
                 dtype=np.float32)
@@ -36,7 +38,7 @@ class IntelligentScissor():
         self.EXPAND  =2
         self.link_calculation()
         self.generate_all_node_dict()
-
+        
     def coordinate2key(self, pose):
         return self.width*pose[0]+pose[1]
 
@@ -177,6 +179,23 @@ class IntelligentScissor():
             for j in [0, self.width-1]:
                 self.node_dict[self.coordinate2key((i,j))]=\
                         PQ_Node(None, self.EXPAND, None, 0)
+
+    def generate_mask(self, path_point):
+        dq = deque()
+        self.mask = np.zeros((self.height, self.width),dtype=np.int32)
+        for item in path_point:
+            self.mask[item[1]][item[0]]==2
+        seed_x = np.random.randint(1, self.height-1)
+        seed_y = np.random.randint(1, self.width-1)
+        while self.mask[seed_x][seed_y]==2:
+            seed_x = np.random.randint(1, self.height-1)
+            seed_y = np.random.randint(1, self.width-1)
+        dq.append((seed_x, seed_y))
+        while dq.count > 0:
+
+
+
+
 
 class PQ_Node():
     def __init__(self, prev_node, state, neighbours, cost):
