@@ -56,10 +56,10 @@ def seed_to_graph(seed_x,seed_y):
     #global obj
     obj.update_seed((seed_x, seed_y))
     start_time = time.time()
-    print('cost_map_generation')
+    #print('cost_map_generation')
     obj.cost_map_generation()
     print('cost map generation time:', time.time() - start_time)
-    print('cost map generation COMPLETED')
+    #print('cost map generation COMPLETED')
 
 def start(event):
     global lastx, lasty, startx, starty, start_flag, xy_stack
@@ -146,7 +146,7 @@ def delete_path(event):
         [popx, popy, pop_id] = xy_stack.pop()
         stack_label.configure(text=xy_stack)
         canvas_path_to_be_removed = canvas_path_stack.pop()
-        canvas_path_label.configure(text = '{0}th canvas_path: {1}'.format(i,canvas_path_to_be_removed))
+        canvas_path_label.configure(text = 'canvas_path to be removed: {1}'.format(i,canvas_path_to_be_removed))
         path_stack_label.configure(text='path_stack after pop {0}: {1}'.format(i, canvas_path_stack))
         if pop_id == -99 :
             start_flag = False
@@ -154,6 +154,7 @@ def delete_path(event):
             #delete point in stack
             canvas.delete(pop_id)
             [lastx, lasty, canvas_id] = xy_stack[-1]
+            seed_to_graph(lastx,lasty)
             #delete drawn path on canvas
             remove_canvas_path(canvas_path_to_be_removed)
 
@@ -162,6 +163,9 @@ def delete_path(event):
             debug_label.configure(text='canvas_id:{0}'.format(canvas_id))
             debug2_label.configure(text='removed_id:{0}'.format(pop_id))
             debug3_label.configure(text='lastx:{0} lasty:{1}'.format(lastx,lasty))
+    else:
+        print('please move cursor inside an existing contour to delete')
+        #TODO select existing contour and delete it
 
 def get_xy(event):
     global cursor_x, cursor_y, cursor_label, canvas_id, lastx, lasty, canvas_path
