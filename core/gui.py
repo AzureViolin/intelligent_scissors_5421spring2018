@@ -1,3 +1,4 @@
+import tkinter
 from tkinter import *
 from tkinter import ttk
 from tkinter import filedialog
@@ -68,11 +69,19 @@ def start(event):
     seed_to_graph(startx,starty)
 
 def close_contour_finish(event):
-    global start_flag, canvas_id
+    global start_flag, canvas_id, canvas_path_stack
     print('close contour finish called')
     if (start_flag == True):
-        canvas_id = canvas.create_line((lastx, lasty, startx, starty), fill=color, width=1,tags='currentline')
+        #canvas_id = canvas.create_line((lastx, lasty, startx, starty), fill=color, width=1,tags='currentline')
+        remove_canvas_path()
+        draw_path(startx,starty)
+        canvas_path_stack.append(canvas_path)
+        canvas_path.clear()
         start_flag = False
+
+        xy_stack.append([startx,starty,canvas_id])
+        stack_label.configure(text=xy_stack)
+        path_stack_label.configure(text=canvas_path_stack)
     else:
         print('Warning: end() is called before start()')
 
@@ -92,7 +101,7 @@ def click_xy(event):
 
         #fix current path on canvas, start new seed
         #canvas_id = canvas.create_line((lastx, lasty, x, y), fill=color, width=1,tags='currentline')
-        draw_path()
+        draw_path(x,y)
         canvas_path_stack.append(canvas_path)
         canvas_path.clear()
 
@@ -102,6 +111,7 @@ def click_xy(event):
         lastx, lasty = x, y
         xy_stack.append([x,y,canvas_id])
         stack_label.configure(text=xy_stack)
+        path_stack_label.configure(text=canvas_path_stack)
     debug_label.configure(text='start_flag:{0}'.format(start_flag))
     debug2_label.configure(text='line_id:{0}'.format(canvas_id))
     debug3_label.configure(text='lastx:{0} lasty:{1}'.format(lastx,lasty))
@@ -132,17 +142,20 @@ def get_xy(event):
     #print(cursor_x, cursor_y)
     if start_flag == True:
         #remove last path in canvas
-        canvas_path_len = len(canvas_path)
-        for line_id in canvas_path:
-            canvas.delete(line_id)
-        canvas_path.clear()
+        remove_canvas_path()
         #draw new path on canvas
-        draw_path()
+        draw_path(cursor_x,cursor_y)
 
-def draw_path():
+def remove_canvas_path():
+    canvas_path_len = len(canvas_path)
+    for line_id in canvas_path:
+        canvas.delete(line_id)
+    canvas_path.clear()
+
+def draw_path(x,y):
     global cursor_label, canvas_id, lastx, lasty, canvas_path
     cursor_label.configure(text = 'getting path for x:{0} y:{1}'.format(cursor_x, cursor_y))
-    path = obj.get_path((int(cursor_x),int(cursor_y)))
+    path = obj.get_path((int(x),int(y)))
     set_color('red')
     path_len = len(path)
     for index, point in enumerate(path):
@@ -174,6 +187,9 @@ def save_contour():
 def save_mask():
     return
 
+def create_scissor_window():
+    scissor_window = tkinter.Toplevel(root)
+
 root = Tk()
 root.title('Intelligent Scissors by Lei & Hao HKUST COMP5421 Spring 2018')
 root.grid_columnconfigure(0, weight=1)
@@ -191,7 +207,7 @@ filemenu.add_command(label="Exit", command = root.quit)
 menubar.add_cascade(label="File", menu=filemenu)
 
 toolmenu = Menu(menubar, tearoff = 0)
-toolmenu.add_command(label = "Scissor")
+toolmenu.add_command(label = "Scissor", command = create_scissor_window)
 menubar.add_cascade(label="Tool", menu=toolmenu)
 
 root.configure(menu = menubar)
@@ -244,6 +260,8 @@ debug3_label = ttk.Label(mainframe, text='<debug3 info>')
 debug3_label.grid(column = 2, row = 5, sticky = (W,N))
 stack_label = ttk.Label(mainframe, text='<stack info>', wraplength = 600, justify = 'left')
 stack_label.grid(column = 0, row = 6, columnspan = 4, sticky = (W,N))
+path_stack_label = ttk.Label(mainframe, text='<path stack info>', wraplength = 1200, justify = 'left')
+path_stack_label.grid(column = 0, row = 7, columnspan = 4, sticky = (W,N))
 
 #Main function binding
 canvas.bind('<Button-1>', click_xy)
