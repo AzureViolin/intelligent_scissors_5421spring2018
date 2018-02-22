@@ -15,6 +15,7 @@ xy_stack = []
 #canvas ids of line segments in path drawn on canvas, correspond to the computed path
 canvas_path = []
 canvas_path_stack = []
+history_paths = []
 
 #Global variables used within this file
 #file_name = ''
@@ -71,7 +72,7 @@ def start(event):
     seed_to_graph(startx,starty)
 
 def close_contour_finish(event):
-    global start_flag, canvas_id, canvas_path_stack, canvas_path, i
+    global start_flag, canvas_id, canvas_path_stack, canvas_path, i, history_paths
     print('close contour finish called')
     if (start_flag == True):
         #canvas_id = canvas.create_line((lastx, lasty, startx, starty), fill=color, width=1,tags='currentline')
@@ -79,8 +80,11 @@ def close_contour_finish(event):
         canvas_path.clear()
         draw_path(startx,starty)
         canvas_path_stack.append(canvas_path[:])
+        path = obj.get_path((int(startx),int(starty)))
+        history_paths.append(path[:])
 
-        canvas_path_label.configure(text = '{0}th canvas_path: {1}'.format(i,canvas_path))
+        #canvas_path_label.configure(text = '{0}th canvas_path: {1}'.format(i,canvas_path))
+        canvas_path_label.configure(text = 'current history_paths: {1}'.format(i,history_paths))
         #path_stack_label.configure(text='path_stack {0}: {1}'.format(i, canvas_path_stack[i]))
         path_stack_label.configure(text='path_stack after {0}: {1}'.format(i, canvas_path_stack))
         i = i + 1
@@ -111,6 +115,8 @@ def click_xy(event):
         #fix current path on canvas, start new seed
         #canvas_id = canvas.create_line((lastx, lasty, x, y), fill=color, width=1,tags='currentline')
         draw_path(x,y)
+        path = obj.get_path((int(x),int(y)))
+        history_paths.append(path[:])
         #canvas_path_label.configure(text = '{0}th canvas_path: {1}'.format(i,canvas_path))
         canvas_path_label.configure(text='path_stack before append {0}: {1}'.format(i, canvas_path_stack))
         #path_stack_label.configure(text='path_stack {0}: {1}'.format(i, canvas_path_stack[0]))
@@ -171,7 +177,9 @@ def get_xy(event):
         canvas_path.clear()
         #draw new path on canvas
         draw_path(cursor_x,cursor_y)
-    canvas_path_label.configure(text = 'current canvas_path: {1}'.format(i,canvas_path))
+        path = obj.get_path((int(cursor_x),int(cursor_y)))
+    #canvas_path_label.configure(text = 'current canvas_path: {1}'.format(i,canvas_path))
+    canvas_path_label.configure(text = 'current path: {1}'.format(i,path))
 
 def remove_canvas_path(canvas_path_to_be_removed):
     canvas_path_len = len(canvas_path_to_be_removed)
