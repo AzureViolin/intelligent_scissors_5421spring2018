@@ -114,7 +114,8 @@ def click_xy(event):
         canvas_path_label.configure(text='path_stack before append {0}: {1}'.format(i, canvas_path_stack))
         #path_stack_label.configure(text='path_stack {0}: {1}'.format(i, canvas_path_stack[0]))
         #path_stack_label.configure(text='path_stack after {0}: {1}'.format(i, canvas_path_stack))
-        canvas_path_stack.append(canvas_path)
+        #canvas_path_stack.append(canvas_path)
+        canvas_path_stack.append('test {0}'.format(i))
         #path_stack_label.configure(text='path_stack {0}: {1}'.format(i, canvas_path_stack[0]))
         path_stack_label.configure(text='path_stack after append {0}: {1}'.format(i, canvas_path_stack))
         i = i + 1
@@ -126,6 +127,7 @@ def click_xy(event):
         lastx, lasty = x, y
         xy_stack.append([x,y,canvas_id])
         stack_label.configure(text=xy_stack)
+
     debug_label.configure(text='start_flag:{0}'.format(start_flag))
     debug2_label.configure(text='line_id:{0}'.format(canvas_id))
     debug3_label.configure(text='lastx:{0} lasty:{1}'.format(lastx,lasty))
