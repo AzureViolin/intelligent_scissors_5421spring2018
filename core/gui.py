@@ -23,8 +23,15 @@ lastx, lasty = 0, 0
 canvas_id = 0
 #startx, starty = 0, 0
 
+#obj = IntelligentScissor(cvimg, (int(seed_x),int(seed_y)))
+#obj.link_calculation()
+#start_time = time.time()
+#print('node dict generation')
+#obj.generate_all_node_dict()
+#print('node dict generation time:', time.time() - start_time)
+
 def open_image():
-    global canvas, image, cvimg, start_flag
+    global canvas, image, cvimg, start_flag, obj
     #TODO remove debug clause
     default = False
     start_flag = False
@@ -37,15 +44,11 @@ def open_image():
         image = ImageTk.PhotoImage(file=file_name)
         cvimg = cv2.imread(file_name)
         canvas.create_image(0,0, image=image, anchor=NW)
+    obj = IntelligentScissor(cvimg)
 
 def seed_to_graph(seed_x,seed_y):
     global obj
-    obj = IntelligentScissor(cvimg, (int(seed_x),int(seed_y)))
-    obj.link_calculation()
-    start_time = time.time()
-    print('node dict generation')
-    obj.generate_all_node_dict()
-    print('node dict generation time:', time.time() - start_time)
+    obj.update_seed((seed_x, seed_y))
     start_time = time.time()
     print('cost_map_generation')
     obj.cost_map_generation()
