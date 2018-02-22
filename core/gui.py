@@ -3,7 +3,7 @@ from tkinter import ttk
 from tkinter import filedialog
 from PIL import ImageTk, Image
 from intelligent_scissor import IntelligentScissor
-import cv2
+import numpy as np
 import time
 
 #Global variables shared between files
@@ -37,12 +37,14 @@ def open_image():
     start_flag = False
     if default == True:
         image = ImageTk.PhotoImage(file='../images/test.jpg')
-        cvimg = cv2.imread("../images/test.jpg")
+        #cvimg = cv2.imread("../images/test.jpg")
+        cvimg = np.array(Image.open("../images/test.jpg"))
         canvas.create_image(0,0, image=image, anchor=NW)
     else :
         file_name = filedialog.askopenfilename()
         image = ImageTk.PhotoImage(file=file_name)
-        cvimg = cv2.imread(file_name)
+        #cvimg = cv2.imread(file_name)
+        cvimg = np.array(Image.open(file_name))
         canvas.create_image(0,0, image=image, anchor=NW)
     obj = IntelligentScissor(cvimg)
 
