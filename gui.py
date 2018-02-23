@@ -162,9 +162,9 @@ class GUI():
 
         # TODO palette, should do with color chooser dialog
         canvas_id = self.canvas.create_rectangle((10, 10, 30, 30), fill='red', tags=('palette','palettered', 'paletteSelected'))
-        self.canvas.tag_bind(canvas_id, '<Button-1>', lambda x: set_color('red', self.canvas))
+        self.canvas.tag_bind(canvas_id, '<Button-1>', lambda x: self.set_color('red'))
         canvas_id = self.canvas.create_rectangle((10, 35, 30, 55), fill='green', tags=('palette','palettegreen'))
-        self.canvas.tag_bind(canvas_id, '<Button-1>', lambda x: set_color('green',self.canvas))
+        self.canvas.tag_bind(canvas_id, '<Button-1>', lambda x: self.set_color('green'))
         self.set_color('green')
         self.canvas.itemconfigure('palette', width=5)
 
@@ -314,7 +314,7 @@ class GUI():
                                     ##break
                                 #canvas_id = self.canvas.create_line((point[0],point[1],next_point[0],next_point[1]), fill = self.color, width = 1, tags = 'currentline')
                                 #self.highlight_id.append(canvas_id)
-            self.highlight_id = self.canvas.create_polygon(self.history_contour[self.contour_idx], fill = self.color, width = 1, tags = 'currentline')
+            #self.highlight_id = self.canvas.create_polygon(self.history_contour[self.contour_idx], fill = self.color, width = 1, tags = 'currentline')
             
             self.state=CONTOUR_HIGHTLIGHT
             # TODO highlight the chosen contour
@@ -327,6 +327,7 @@ class GUI():
             # TODO cancel highlight the chosen contour
             self.state=PREPARE_STATE
             self.contour_idx=None
+            print ("Cancel chosed contour")
 
         self.debug_label.configure(text='start_flag:{0}'.format(start_flag))
         self.debug2_label.configure(text='line_id:{0}'.format(canvas_id))
@@ -373,7 +374,7 @@ class GUI():
                 self.state=self.PREPARE_STATE
 
 
-        elif self.state==CONTOUR_CHOOSE:
+        elif self.state==CONTOUR_HIGHTLIGHT:
             #  TODO delete the selected path
             #pass
             #while len(canvas_path_stack)>0:
@@ -383,7 +384,12 @@ class GUI():
             #finish_flag = False
             #canvas_path_stack.clear()
             #canvas_path.clear()
+            #for path in self.contour_stack[self.contour_idx]
+            #self.history_contour.remove()
+            #for 
+            #del self.contour_stack
             self.state=PREPARE_STATE
+
         else:
             print('please move cursor inside an existing contour to delete')
             #TODO select existing contour and delete it
