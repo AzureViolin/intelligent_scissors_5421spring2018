@@ -7,6 +7,7 @@ from intelligent_scissor import IntelligentScissor
 import numpy as np
 import time
 from functools import partial
+import cv2
 
 #TODO
 #Zoom in Zoom out
@@ -32,6 +33,8 @@ canvas_contour_stack = []
 history_paths = []
 history_contour = []
 contour_idx = None
+hovered_mask_idx = -1
+last_hovered_mask = -1
 
 #Global variables used within this file
 #file_name = ''
@@ -62,13 +65,16 @@ def open_image():
     scissor_flag = False
     #TODO get current path
     file_name = filedialog.askopenfilename(initialdir = './images')
-    image = ImageTk.PhotoImage(file=file_name)
     pil_img = Image.open(file_name)
+    #image = ImageTk.PhotoImage(file=file_name)
+    image = ImageTk.PhotoImage(pil_img)
     canvas.create_image(0,0, image=image, anchor=NW)
     draw_image = ImageDraw.Draw(pil_img)
     obj = IntelligentScissor(np.array(pil_img))
     canvas_contour_stack.clear()
     history_contour.clear()
+    img_width, img_height = pil_img.size
+    canvas.configure(width=img_width, height=img_height)
 
 def seed_to_graph(seed_x,seed_y):
     #global obj
@@ -333,10 +339,23 @@ def save_contour():
     #return
 
 def save_mask():
+    global canvas
     if scissor_flag==False:
         file_name = filedialog.asksaveasfilename(initialdir = './output',
                 filetypes = (("png files","*.png"), ("jpeg files","*.jpg")))
-        Image.fromarray((obj.mask*255).astype(np.uint8)).save(file_name)
+        mask_image = Image.fromarray((obj.mask*255).astype(np.uint8))
+        mask_image.save(file_name)
+        tk_image = ImageTk.PhotoImage(mask_image)
+        print('================create image===============')
+        print (mask_image)
+        #canvas.create_image(0,0, image=tk_image, anchor=NW)
+        pil_img1 = Image.open(file_name)
+        print('================load pil image===============')
+        print (pil_img1)
+        image1 = ImageTk.PhotoImage(pil_img1)
+        canvas.create_image(0,0, image=image1, anchor=NW)
+
+
     #return
 
 def create_help_window():
@@ -491,19 +510,19 @@ ttk.Sizegrip(root).grid(column=1, row=1, sticky=(S,E))
 
 #show cursor coornidate
 cursor_label =ttk.Label(mainframe, text='x:0,y:0')
-cursor_label.grid(column = 3, row = 5, sticky = (E,N))
+cursor_label.grid(column = 0, row = 5, sticky = (W,N))
 canvas.bind('<Leave>', lambda e: cursor_label.configure(text='cursor outside canvas'))
 
 #show other debug info
 debug_label = ttk.Label(mainframe, text='<debug info>')
-debug_label.grid(column = 0, row = 5, sticky = (W,N))
+debug_label.grid(column = 0, row = 9, sticky = (W,N))
 debug2_label = ttk.Label(mainframe, text='<debug2 info>')
-debug2_label.grid(column = 1, row = 5, sticky = (W,N))
+debug2_label.grid(column = 0, row = 6, sticky = (W,N))
 debug3_label = ttk.Label(mainframe, text='<debug3 info>')
-debug3_label.grid(column = 2, row = 5, sticky = (W,N))
+debug3_label.grid(column = 0, row = 7, sticky = (W,N))
 
 hover_mask_label = ttk.Label(mainframe, text='<hover_mask info>')
-hover_mask_label.grid(column = 0, row = 6, sticky = (W,N))
+hover_mask_label.grid(column = 0, row = 8, sticky = (W,N))
 
 
 stack_label = ttk.Label(mainframe, text='<stack info>', wraplength = wrap_length, justify = 'left')
