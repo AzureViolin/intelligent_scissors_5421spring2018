@@ -12,6 +12,8 @@ from functools import partial
 #Zoom in Zoom out
 #Show various debug pic
 #refacdtor canvas draw line
+focus_width = 5
+unfocus_width = 1
 
 highlight_id = []
 
@@ -111,14 +113,15 @@ def close_contour_finish(event):
     if scissor_flag == True:
         #canvas_id = canvas.create_line((last_x, last_y, start_x, start_y), fill=color, width=1,tags='currentline')
         canvas.delete(canvas_path)
-        draw_path(start_x,start_y, line_width = 1)
+        draw_path(start_x,start_y, line_width = unfocus_width)
         canvas_path_stack.append(canvas_path)
         canvas_contour_stack.append(canvas_path_stack[:])
         min_path = obj.get_path((int(start_x),int(start_y)))
         history_paths.append(min_path[:])
         history_contour.append((history_paths[:],1))
         i = i + 1
-        canvas.delete(canvas_path)
+        #canvas.delete(canvas_path)
+        canvas_path = -99
         point_stack.append([start_x,start_y,canvas_id])
         #TODO uncomment to integrate
         obj.generate_mask(history_paths, close = True)
@@ -145,7 +148,8 @@ def click_xy(event):
         x, y = canvas.canvasx(event.x), canvas.canvasy(event.y)
         set_color('green')
         #fix current path on canvas, start new seed
-        canvas.itemconfigure(canvas_path,width =1)
+        canvas.itemconfigure(canvas_path,width =unfocus_width)
+        canvas_path = -99
         min_path = obj.get_path((int(x),int(y)))
         history_paths.append(min_path[:])
         canvas_path_stack.append(canvas_path)
@@ -220,7 +224,7 @@ def delete_path(event):
 #    pass
 
 def get_xy(event):
-    global cursor_x, cursor_y, cursor_label, canvas_id, last_x, last_y, canvas_path, hovered_mask_idx
+    global cursor_x, cursor_y, cursor_label, canvas_id, last_x, last_y, canvas_path, hovered_mask_idx, last_hovered_mask
     cursor_x, cursor_y = canvas.canvasx(event.x), canvas.canvasy(event.y)
     cursor_label.configure(text = 'x:{0} y:{1}'.format(cursor_x, cursor_y))
     #print(cursor_x, cursor_y)
@@ -228,11 +232,18 @@ def get_xy(event):
         #remove last path in canvas
         canvas.delete(canvas_path)
         #draw new path on canvas
-        draw_path(cursor_x,cursor_y, line_width = 6)
+        draw_path(cursor_x,cursor_y, line_width = focus_width)
         #in_path = obj.get_path((int(cursor_x),int(cursor_y)))
         #min_path_label.configure(text = 'current canvas_path: {1}'.format(i,canvas_path))
     else:
         hovered_mask_idx = obj.coordinate_mask(int(cursor_x),int(cursor_y))
+        last_hovered_mask = hovered_mask_idx
+        if hovered_mask_idx == -99:
+            highlight_contour(canvas_contour_stack[last_hovered_mask], width = unfocus_width, color = 'green')
+        else:
+            highlight_contour(canvas_contour_stack[hovered_mask_idx], width = focus_width, color = 'red')
+
+
     show_debug(show = debug_setting)
 
 def show_debug(show):
@@ -241,20 +252,24 @@ def show_debug(show):
         debug2_label.configure(text='line_id:{0}'.format(canvas_id))
         debug3_label.configure(text='last_x:{0} last_y:{1}'.format(last_x,last_y))
         stack_label.configure(text='points in stack:{0}'.format(point_stack))
+        history_paths_label.configure(text='canvas_contour_stack {0}: {1}'.format(i, canvas_contour_stack))
 
         # TODO show debug info in different mode
         #debug4_label.configure(text='removed_id:{0}'.format(pop_id))
         #min_path_label.configure(text = 'min_path to be removed: {1}'.format(i,min_path_to_be_removed))
         #history_paths_label.configure(text='path_stack after pop: {1}'.format(i, history_paths))
-
-    if scissor_flag == True:
-        min_path_label.configure(text = '{0}th path: {1}'.format(i,min_path))
-        history_paths_label.configure(text='history_paths after {0}th append: {1}'.format(i, history_paths))
         canvas_path_label.configure(text = '{0}th canvas path: {1}'.format(i,canvas_path))
         canvas_path_stack_label.configure(text='canvas path stack after {0}th append: {1}'.format(i, canvas_path_stack))
-        #min_path_label.configure(text = 'closing min_path: {1}'.format(i,min_path))
-        #history_paths_label.configure(text='closed history_paths : {1}'.format(i, history_paths))
 
+    if scissor_flag == True:
+        pass
+        #min_path_label.configure(text = '{0}th path: {1}'.format(i,min_path))
+        #history_paths_label.configure(text='history_paths after {0}th append: {1}'.format(i, history_paths))
+
+def highlight_contour(contour,width,color):
+    for line_id in contour:
+        #canvas.itemconfigure(line_id,width = width, color = color)
+        canvas.itemconfigure(line_id,width = width)
 
 def remove_canvas_contour(canvas_path_to_be_removed):
     canvas_path_len = len(canvas_path_to_be_removed)
