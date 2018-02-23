@@ -15,6 +15,7 @@ xy_stack = []
 #canvas ids of line segments in path drawn on canvas, correspond to the computed path
 canvas_path = []
 canvas_path_stack = []
+contour_stack = []
 history_paths = []
 
 #Global variables used within this file
@@ -75,7 +76,7 @@ def start(event):
     seed_to_graph(startx,starty)
 
 def close_contour_finish(event):
-    global start_flag, canvas_id, canvas_path_stack, canvas_path, i, history_paths, finish_flag, obj
+    global start_flag, canvas_id, canvas_path_stack, canvas_path, i, history_paths, finish_flag, obj, contour_stack
     print('close contour finish called')
     if (start_flag == True):
         #canvas_id = canvas.create_line((lastx, lasty, startx, starty), fill=color, width=1,tags='currentline')
@@ -180,6 +181,11 @@ def delete_path(event):
     else:
         print('please move cursor inside an existing contour to delete')
         #TODO select existing contour and delete it
+
+def draw_line_image(path_):
+    # TODO draw path in canvas_path_stack to image and saved as countour
+    pass
+
 
 def get_xy(event):
     global cursor_x, cursor_y, cursor_label, canvas_id, lastx, lasty, canvas_path
