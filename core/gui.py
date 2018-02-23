@@ -20,7 +20,7 @@ history_paths = []
 #Global variables used within this file
 #file_name = ''
 #image = ''
-start_flag = False
+scissor_flag = False
 lastx, lasty = 0, 0
 canvas_id = 0
 #start_x, start_y = 0, 0
@@ -35,10 +35,10 @@ wrap_length = 1920
 #print('node dict generation time:', time.time() - start_time)
 
 def open_image():
-    global canvas, image, cvimg, start_flag, obj
+    global canvas, image, cvimg, scissor_flag, obj
     #TODO remove debug clause
     default = False
-    start_flag = False
+    scissor_flag = False
     if default == True:
         image = ImageTk.PhotoImage(file='../images/test.jpg')
         #cvimg = cv2.imread("../images/test.jpg")
@@ -62,9 +62,18 @@ def seed_to_graph(seed_x,seed_y):
     print('cost map generation time:', time.time() - start_time)
     #print('cost map generation COMPLETED')
 
+def edit_mode(flag):
+    global scissor_flag
+    if flag == True:
+        scissor_flag = True
+        canvas.configure(cursor = 'pencil')
+    else:
+        scissor_flag = False
+        canvas.configure(cursor = 'left_ptr')
+
 def start(event):
-    global lastx, lasty, start_x, start_y, start_flag, point_stack
-    start_flag = True
+    global lastx, lasty, start_x, start_y, scissor_flag, point_stack
+    edit_mode(True)
     start_x, start_y = canvas.canvasx(event.x), canvas.canvasy(event.y)
     lastx, lasty = start_x, start_y
     point_stack.append([start_x,start_y,-99])
@@ -73,9 +82,9 @@ def start(event):
     seed_to_graph(start_x,start_y)
 
 def close_contour_finish(event):
-    global start_flag, canvas_id, canvas_path_stack, canvas_path, i, history_paths
+    global scissor_flag, canvas_id, canvas_path_stack, canvas_path, i, history_paths
     print('close contour finish called')
-    if (start_flag == True):
+    if (scissor_flag == True):
         #canvas_id = canvas.create_line((lastx, lasty, start_x, start_y), fill=color, width=1,tags='currentline')
         remove_canvas_path(canvas_path)
         canvas_path.clear()
@@ -91,7 +100,7 @@ def close_contour_finish(event):
         i = i + 1
 
         canvas_path.clear()
-        start_flag = False
+        edit_mode(False)
 
         point_stack.append([start_x,start_y,canvas_id])
         stack_label.configure(text=point_stack)
@@ -101,15 +110,15 @@ def close_contour_finish(event):
         print('Warning: end() is called before start()')
 
 def finish(event):
-    global start_flag
-    start_flag = False
+    global scissor_flag
+    edit_mode(False)
     print('finish called')
 
 def click_xy(event):
-    global lastx, lasty, start_flag, point_stack, canvas_id, canvas_path, canvas_path_stack, i
+    global lastx, lasty, scissor_flag, point_stack, canvas_id, canvas_path, canvas_path_stack, i
     #print('event x y:{0} {1}'.format(event.x,event.y))
     #print('last  x y:{0} {1}'.format(lastx,lasty))
-    if (start_flag == True):
+    if (scissor_flag == True):
 
         x, y = canvas.canvasx(event.x), canvas.canvasy(event.y)
         set_color('green')
@@ -138,14 +147,14 @@ def click_xy(event):
         point_stack.append([x,y,canvas_id])
         stack_label.configure(text=point_stack)
 
-    debug_label.configure(text='start_flag:{0}'.format(start_flag))
+    debug_label.configure(text='scissor_flag:{0}'.format(scissor_flag))
     debug2_label.configure(text='line_id:{0}'.format(canvas_id))
     debug3_label.configure(text='lastx:{0} lasty:{1}'.format(lastx,lasty))
 
 def delete_path(event):
-    global canvas_id, lastx, lasty, start_flag, canvas_path
+    global canvas_id, lastx, lasty, scissor_flag, canvas_path
     #[popx, popy, pop_id] = point_stack[-1]
-    if start_flag == True:
+    if scissor_flag == True:
         [popx, popy, pop_id] = point_stack.pop()
         stack_label.configure(text=point_stack)
         canvas_path_to_be_removed = canvas_path_stack.pop()
@@ -153,7 +162,7 @@ def delete_path(event):
         min_path_label.configure(text = 'min_path to be removed: {1}'.format(i,min_path_to_be_removed))
         history_paths_label.configure(text='path_stack after pop: {1}'.format(i, history_paths))
         if pop_id == -99 :
-            start_flag = False
+            edit_mode(False)
             remove_canvas_path(canvas_path)
         else :
             #delete point in stack
@@ -176,11 +185,11 @@ def get_xy(event):
     global cursor_x, cursor_y, cursor_label, canvas_id, lastx, lasty, canvas_path
     cursor_x, cursor_y = canvas.canvasx(event.x), canvas.canvasy(event.y)
     cursor_label.configure(text = 'x:{0} y:{1}'.format(cursor_x, cursor_y))
-    debug_label.configure(text='start_flag:{0}'.format(start_flag))
+    debug_label.configure(text='scissor_flag:{0}'.format(scissor_flag))
     debug2_label.configure(text='line_id:{0}'.format(canvas_id))
     debug3_label.configure(text='lastx:{0} lasty:{1}'.format(lastx,lasty))
     #print(cursor_x, cursor_y)
-    if start_flag == True:
+    if scissor_flag == True:
         #remove last path in canvas
         remove_canvas_path(canvas_path)
         canvas_path.clear()
@@ -233,6 +242,11 @@ def save_mask():
 
 def create_scissor_window():
     scissor_window = tkinter.Toplevel(root)
+    scissor_window.title('Scissor Config')
+
+def create_brush_window():
+    brush_window = tkinter.Toplevel(root)
+    brush_window.title('Brush Config')
 
 root = Tk()
 root.title('Intelligent Scissors by Lei & Hao HKUST COMP5421 Spring 2018')
@@ -252,6 +266,7 @@ menubar.add_cascade(label="File", menu=filemenu)
 
 toolmenu = Menu(menubar, tearoff = 0)
 toolmenu.add_command(label = "Scissor", command = create_scissor_window)
+toolmenu.add_command(label = "Brush", command = create_brush_window)
 menubar.add_cascade(label="Tool", menu=toolmenu)
 
 root.configure(menu = menubar)
@@ -266,7 +281,7 @@ h = ttk.Scrollbar(mainframe, orient=HORIZONTAL)
 v = ttk.Scrollbar(mainframe, orient=VERTICAL)
 
 #canvas
-canvas = Canvas(mainframe, cursor = 'pencil', width=640, height=480, bg='white',scrollregion=(0, 0, 1000, 1000), yscrollcommand=v.set,xscrollcommand=h.set)
+canvas = Canvas(mainframe, width=640, height=480, bg='white',scrollregion=(0, 0, 1000, 1000), yscrollcommand=v.set,xscrollcommand=h.set)
 canvas.grid(column=0, row=0, columnspan = 4, rowspan = 4, sticky=(N,W,E,S))
 mainframe.columnconfigure(0,weight = 3)
 mainframe.columnconfigure(1,weight = 3)
@@ -320,6 +335,8 @@ root.bind('<Return>', finish)
 root.bind('<BackSpace>', delete_path)
 root.bind('<Control-Return>', close_contour_finish)
 canvas.bind('<Motion>', get_xy)
+canvas.bind('<3>',lambda e : canvas.scan_mark(e.x, e.y))
+canvas.bind('<B3-Motion>',lambda e: canvas.scan_dragto(e.x, e.y))
 #canvas.bind('<B1-Motion>', add_line)
 #canvas.bind('<B1-ButtonRelease>', done_stroke)
 
