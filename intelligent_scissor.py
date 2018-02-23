@@ -310,7 +310,9 @@ class IntelligentScissor():
     def coordinate_mask(self, x,y):
         for i, item in enumerate(self.contour_mask_list):
             if item[0][y][x] == 1:
-                return i, item 
+                return i
+            else:
+                return -99
 
 class PQ_Node():
     def __init__(self, prev_node, state, neighbours, cost):
