@@ -7,6 +7,18 @@ from intelligent_scissor import IntelligentScissor
 import numpy as np
 import time
 
+
+
+LOAD_IMAGE_STATE=0
+PREPARE_STATE = 1
+START_COUNTER_STATE =2
+PROCESS_COUNTER_STATE=3
+FINISH_STATE=4
+FINISH_CLOSE_STATE=5
+CHOOSE_STATE=6
+
+gloabl_state = -1
+
 #Global variables shared between files
 #cursor_x, cursor_y holds current cursor coordinates
 cursor_x, cursor_y = 0, 0
@@ -21,6 +33,7 @@ history_paths = []
 #Global variables used within this file
 #file_name = ''
 #image = ''
+
 start_flag = False
 finish_flag = False
 lastx, lasty = 0, 0
@@ -36,8 +49,12 @@ wrap_length = 1920
 #obj.generate_all_node_dict()
 #print('node dict generation time:', time.time() - start_time)
 
+class GUI():
+    def __init__(self, global_state=-1):
+        self.state = gloabl_state
+
 def open_image():
-    global canvas, image, cvimg, start_flag, obj, draw_image
+    global canvas, image, cvimg, start_flag, obj, draw_image, gloabl_state
     #TODO remove debug clause
     default = False
     start_flag = False
