@@ -42,13 +42,13 @@ def open_image():
     default = False
     start_flag = False
     if default == True:
-        image = ImageTk.PhotoImage(file='../images/test.jpg')
+        image = ImageTk.PhotoImage(file='./images/test.jpg')
         #cvimg = cv2.imread("../images/test.jpg")
-        cvimg = np.array(Image.open("../images/test.jpg"))
+        cvimg = np.array(Image.open("./images/test.jpg"))
         canvas.create_image(0,0, image=image, anchor=NW)
     else :
         #TODO get current path
-        file_name = filedialog.askopenfilename(initialdir = '../images')
+        file_name = filedialog.askopenfilename(initialdir = './images')
         image = ImageTk.PhotoImage(file=file_name)
         pil_img = Image.open(file_name)
         canvas.create_image(0,0, image=image, anchor=NW)
@@ -242,14 +242,14 @@ def set_color(newcolor):
 
 def save_contour():
     if start_flag==True or finish_flag==True:
-        file_name = filedialog.asksaveasfilename(initialdir = '../images',
+        file_name = filedialog.asksaveasfilename(initialdir = './images',
                 filetypes = (("png files","*.png"), ("jpeg files","*.jpg")))
         canvas.postscript(file=file_name, colormode='color')
     #return
 
 def save_mask():
     if finish_flag==True:
-        file_name = filedialog.asksaveasfilename(initialdir = '../images',
+        file_name = filedialog.asksaveasfilename(initialdir = './images',
                 filetypes = (("png files","*.png"), ("jpeg files","*.jpg")))
         Image.fromarray((obj.mask*255).astype(np.uint8)).save(file_name)
     #return

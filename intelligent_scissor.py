@@ -251,7 +251,7 @@ class PQ_Node():
 if __name__=="__main__":
     import cv2
     #img = cv2.imread("../images/test2.jpg", cv2.IMREAD_GRAYSCALE)
-    img = cv2.imread("../images/test3.jpeg")
+    img = cv2.imread("./images/test3.jpeg")
     #img = cv2.resize(img, (15,15))
     seed = (240,199)
     obj = IntelligentScissor(img)
