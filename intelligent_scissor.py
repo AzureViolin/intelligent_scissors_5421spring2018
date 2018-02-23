@@ -196,26 +196,31 @@ class IntelligentScissor():
                 self.node_dict[self.coordinate2key((i,j))]=\
                         PQ_Node(None, self.EXPAND, None, 0)
     
-    def update_path_dict(self, all_path):
-        for path in all_path:
-            for node in path:
-                node_item = self.node_dict[self.coordinate2key((node[1],node[0]))]
-                node_item.state = self.BORDER
-                self.node_dict[self.coordinate2key((node[1],node[0]))]=node_item
+    def update_path_dict(self, all_contour, save_mask=True):
+        for idx, contour in enumerate(all_contour):
+            if save_mask and contour[1]==0:
+                continue
+            for path in contour[0]:
+                for node in path:
+                    node_item = self.node_dict[self.coordinate2key((node[1],node[0]))]
+                    node_item.state = self.BORDER+idx
+                    self.node_dict[self.coordinate2key((node[1],node[0]))]=node_item
 
-    def generate_mask(self, path_point):
+    def generate_mask(self, path_point, seed_x=1, seed_y=1, save_mask=True):
         mask = np.zeros((self.height, self.width),dtype=np.int32)
         dq = deque()
-        inside_flag = False
+        outside_flag = False
+        contour_idx = None
         self.update_node_dict()
-        self.update_path_dict(path_point)
-        seed_row = np.random.randint(1, self.height-1)
-        seed_column = np.random.randint(1, self.width-1)
-        seed_key = self.coordinate2key((seed_row, seed_column))
-        while self.node_dict[seed_key].state==self.BORDER:
-            seed_row = np.random.randint(1, self.height-1)
-            seed_column = np.random.randint(1, self.width-1)
-            seed_key = self.coordinate2key((seed_row, seed_column))
+        self.update_path_dict(path_point, save_mask=save_mask)
+        #seed_row = np.random.randint(1, self.height-1)
+        #seed_column = np.random.randint(1, self.width-1)
+        #seed_key = self.coordinate2key((seed_row, seed_column))
+        #while self.node_dict[seed_key].state==self.BORDER:
+            #seed_row = np.random.randint(1, self.height-1)
+            #seed_column = np.random.randint(1, self.width-1)
+            #seed_key = self.coordinate2key((seed_row, seed_column))
+        seed_key = self.coordinate2key((seed_y,seed_x))
         dq.append(seed_key)
         while len(dq) > 0:
             root_key = dq.popleft()
@@ -224,6 +229,7 @@ class IntelligentScissor():
             root_column = root_key%self.width
             mask[root_row][root_column]=1
             self.node_dict[root_key] = root_node
+            #print (root_row, root_column)
             for n_pose in root_node.neighbours[::2]:
                 n_pose_node = self.node_dict[n_pose[0]]
                 n_pose_state = n_pose_node.state
@@ -231,15 +237,19 @@ class IntelligentScissor():
                     dq.append(n_pose[0])
                     n_pose_node.state = self.ACTIVE
                     self.node_dict[n_pose[0]] = n_pose_node
-                elif ((inside_flag == False) and (n_pose_state==self.EXPAND)):
-                    inside_flag = True
-                    continue
-                else:
-                    continue
-        if inside_flag == True:
+                elif ((outside_flag == False) and (n_pose_state==self.EXPAND)):
+                    outside_flag = True
+                elif n_pose_state>=self.BORDER:
+                    contour_idx = n_pose_state-self.BORDER
+
+        if outside_flag == True:
             mask[1:-1,1:-1] = 1-mask[1:-1,1:-1]
-        self.mask = mask[:]
-        return mask
+            self.mask = mask[:]
+            return mask, None
+        
+        if outside_flag == False:
+            self.mask = mask[:]
+            return mask, contour_idx
 
 class PQ_Node():
     def __init__(self, prev_node, state, neighbours, cost):

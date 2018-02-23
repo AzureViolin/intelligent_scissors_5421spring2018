@@ -6,11 +6,14 @@ from PIL import ImageTk, Image, ImageDraw
 from intelligent_scissor import IntelligentScissor
 import numpy as np
 import time
+from functools import partial
 
 #TODO
 #Zoom in Zoom out
 #Show various debug pic
 #refacdtor canvas draw line
+
+highlight_id = []
 
 debug_setting = True
 
@@ -25,13 +28,15 @@ canvas_path_stack = []
 min_path = []
 contour_stack = []
 history_paths = []
+history_contour = []
+contour_idx = None
 
 #Global variables used within this file
 #file_name = ''
 #image = ''
 scissor_flag = False
 finish_flag = False
-lastx, lasty = 0, 0
+last_x, last_y = 0, 0
 canvas_id = 0
 #start_x, start_y = 0, 0
 i = 0
@@ -52,22 +57,16 @@ about_window_exist = False
 
 def open_image():
     global canvas, image, cvimg, scissor_flag,  obj, draw_image
-    #TODO remove debug clause
-    default = False
     scissor_flag = False
-    if default == True:
-        image = ImageTk.PhotoImage(file='./images/test.jpg')
-        #cvimg = cv2.imread("../images/test.jpg")
-        cvimg = np.array(Image.open("./images/test.jpg"))
-        canvas.create_image(0,0, image=image, anchor=NW)
-    else :
-        #TODO get current path
-        file_name = filedialog.askopenfilename(initialdir = './images')
-        image = ImageTk.PhotoImage(file=file_name)
-        pil_img = Image.open(file_name)
-        canvas.create_image(0,0, image=image, anchor=NW)
-        draw_image = ImageDraw.Draw(pil_img)
+    #TODO get current path
+    file_name = filedialog.askopenfilename(initialdir = './images')
+    image = ImageTk.PhotoImage(file=file_name)
+    pil_img = Image.open(file_name)
+    canvas.create_image(0,0, image=image, anchor=NW)
+    draw_image = ImageDraw.Draw(pil_img)
     obj = IntelligentScissor(np.array(pil_img))
+    contour_stack.clear()
+    history_contour.clear()
 
 def seed_to_graph(seed_x,seed_y):
     #global obj
@@ -88,112 +87,118 @@ def live_wire_mode(flag):
         canvas.configure(cursor = 'left_ptr')
 
 def start(event):
-    global lastx, lasty, start_x, start_y, scissor_flag, point_stack, finish_flag
-    live_wire_mode(True)
-    finish_flag = False
-    start_x, start_y = canvas.canvasx(event.x), canvas.canvasy(event.y)
-    lastx, lasty = start_x, start_y
-    point_stack.append([start_x,start_y,-99])
-    stack_label.configure(text=point_stack)
-    print('start_x, start_y: {0} {1}'.format(start_x, start_y))
-    seed_to_graph(start_x,start_y)
+    global last_x, last_y, start_x, start_y, scissor_flag, point_stack, finish_flag
+    if scissor_flag == False:
+        live_wire_mode(True)
+        start_x, start_y = canvas.canvasx(event.x), canvas.canvasy(event.y)
+        last_x, last_y = start_x, start_y
+        point_stack.clear()
+        point_stack.append([start_x,start_y,-99])
+        stack_label.configure(text=point_stack)
+        print('start_x, start_y: {0} {1}'.format(start_x, start_y))
+        seed_to_graph(start_x,start_y)
+        canvas_path_stack.clear()
+        canvas_path.clear()
+        history_paths.clear()
+    else :
+        print('Warning: You have to finish a contour before starting a new one.')
 
 def close_contour_finish(event):
     global scissor_flag, canvas_id, canvas_path_stack, canvas_path, i, history_paths, finish_flag, obj, contour_stack
     print('close contour finish called')
-    if (scissor_flag == True):
-        #canvas_id = canvas.create_line((lastx, lasty, start_x, start_y), fill=color, width=1,tags='currentline')
+    if scissor_flag == True:
+        #canvas_id = canvas.create_line((last_x, last_y, start_x, start_y), fill=color, width=1,tags='currentline')
         remove_canvas_path(canvas_path)
         canvas_path.clear()
         draw_path(start_x,start_y, line_width = 3)
         canvas_path_stack.append(canvas_path[:])
         min_path = obj.get_path((int(start_x),int(start_y)))
         history_paths.append(min_path[:])
-
-        #min_path_label.configure(text = '{0}th canvas_path: {1}'.format(i,canvas_path))
-        #history_paths_label.configure(text='path_stack {0}: {1}'.format(i, canvas_path_stack[i]))
-
+        history_contour.append((history_paths[:],1))
         i = i + 1
-
         canvas_path.clear()
-        live_wire_mode(False)
-
         point_stack.append([start_x,start_y,canvas_id])
-        finish_flag = True
         #TODO uncomment to integrate
-        obj.generate_mask(history_paths)
+        #obj.generate_mask(history_paths)
+        live_wire_mode(False)
     else:
         print('Warning: end() is called before start()')
     show_debug(show = debug_setting)
 
 def finish(event):
-    global scissor_flag, finish_flag
-    live_wire_mode(False)
-    finish_flag = True
-    print('finish called')
+    global scissor_flag
+    if scissor_flag == True:
+        print('finish called while contour is still open')
+        live_wire_mode(False)
+        remove_canvas_path(canvas_path)
+        contour_stack.append(canvas_path_stack[:])
+        min_path = obj.get_path((int(start_x),int(start_y)))
+        history_paths.append(min_path[:])
+        history_contour.append((history_paths[:],0))
 
 def click_xy(event):
-    global lastx, lasty, scissor_flag, point_stack, canvas_id, canvas_path, canvas_path_stack, i
-    #print('event x y:{0} {1}'.format(event.x,event.y))
-    #print('last  x y:{0} {1}'.format(lastx,lasty))
-    if (scissor_flag == True):
-
+    global last_x, last_y, scissor_flag, point_stack, canvas_id, canvas_path, canvas_path_stack, i, highlight_id
+    if scissor_flag == True:
         x, y = canvas.canvasx(event.x), canvas.canvasy(event.y)
         set_color('green')
-
         #fix current path on canvas, start new seed
-        #canvas_id = canvas.create_line((lastx, lasty, x, y), fill=color, width=1,tags='currentline')
-        #remove_canvas_path(canvas_path)
-        #draw_path(x,y,line_width = 3)
         canvas.itemconfigure(canvas_path[0],width =3)
         min_path = obj.get_path((int(x),int(y)))
         history_paths.append(min_path[:])
-        #min_path_label.configure(text='path_stack before append {0}: {1}'.format(i, canvas_path_stack))
-        #history_paths_label.configure(text='path_stack {0}: {1}'.format(i, canvas_path_stack[0]))
-        #history_paths_label.configure(text='path_stack after {0}: {1}'.format(i, canvas_path_stack))
         canvas_path_stack.append(canvas_path[:])
-        #canvas_path_stack.append('test {0}'.format(i))
-        #history_paths_label.configure(text='path_stack {0}: {1}'.format(i, canvas_path_stack[0]))
         i = i + 1
         canvas_path.clear()
-
         #generate new graph with new seed
         seed_to_graph(x,y)
-
-        lastx, lasty = x, y
+        last_x, last_y = x, y
         point_stack.append([x,y,canvas_id])
+    else:
+        print('Nothing will happen even if you keep clicking mouse, since we are not in live wire mode yet.')
 
     show_debug(show = debug_setting)
+#    elif len(history_contour)>0):
+#        set_color('green')
+#        highlight_id = []
+#        mask_, contour_idx = obj.generate_mask(history_contour,
+#                int(canvas.canvasx(event.x)),
+#                int(canvas.canvasy(event.y)),
+#                False)
+#        print ("contour_hight_idx:", contour_idx)
+#        # TODO highlight the chosen contour
+#        # and update to hightlight CHOOSE_STATE
+#        # TODO cancel highlight the chosen contour
+#        contour_idx=None
+#        print ("Cancel chosen contour")
 
 def delete_path(event):
-    global canvas_id, lastx, lasty, scissor_flag, canvas_path, canvas_path_stack, finish_flag
+    global canvas_id, last_x, last_y, scissor_flag, canvas_path, canvas_path_stack, finish_flag
     #[popx, popy, pop_id] = point_stack[-1]
     if scissor_flag == True:
         [popx, popy, pop_id] = point_stack.pop()
-        #stack_label.configure(text=point_stack)
-
-        canvas_path_to_be_removed = canvas_path_stack.pop()
-        min_path_to_be_removed = history_paths.pop()
         if pop_id == -99 :
             live_wire_mode(False)
             remove_canvas_path(canvas_path)
+            print('Delete initial seed of a contour')
         else :
+            canvas_path_to_be_removed = canvas_path_stack.pop()
+            min_path_to_be_removed = history_paths.pop()
             #delete point in stack
             canvas.delete(pop_id)
-            [lastx, lasty, canvas_id] = point_stack[-1]
-            seed_to_graph(lastx,lasty)
+            [last_x, last_y, canvas_id] = point_stack[-1]
+            seed_to_graph(last_x,last_y)
             #delete drawn path on canvas
+            remove_canvas_path(canvas_path)
             remove_canvas_path(canvas_path_to_be_removed)
 
-    elif finish_flag==True:
-        while len(canvas_path_stack)>0:
-            path = canvas_path_stack.pop()
-            remove_canvas_path(path)
-        live_wire_mode(False)
-        finish_flag = False
-        canvas_path_stack.clear()
-        canvas_path.clear()
-
+#    elif finish_flag==True:
+#        while len(canvas_path_stack)>0:
+#            path = canvas_path_stack.pop()
+#            remove_canvas_path(path)
+#        live_wire_mode(False)
+#        finish_flag = False
+#        canvas_path_stack.clear()
+#        canvas_path.clear()
+#
     else:
         print('please move cursor inside an existing contour to delete')
         #TODO select existing contour and delete it
@@ -201,12 +206,12 @@ def delete_path(event):
     #update debug info
     show_debug(show = debug_setting)
 
-def draw_line_image(path_):
+#def draw_line_image(path_):
     # TODO draw path in canvas_path_stack to image and saved as countour
-    pass
+#    pass
 
 def get_xy(event):
-    global cursor_x, cursor_y, cursor_label, canvas_id, lastx, lasty, canvas_path
+    global cursor_x, cursor_y, cursor_label, canvas_id, last_x, last_y, canvas_path
     cursor_x, cursor_y = canvas.canvasx(event.x), canvas.canvasy(event.y)
     cursor_label.configure(text = 'x:{0} y:{1}'.format(cursor_x, cursor_y))
     #print(cursor_x, cursor_y)
@@ -224,7 +229,8 @@ def show_debug(show):
     if show == True:
         debug_label.configure(text='scissor_flag:{0}'.format(scissor_flag))
         debug2_label.configure(text='line_id:{0}'.format(canvas_id))
-        debug3_label.configure(text='lastx:{0} lasty:{1}'.format(lastx,lasty))
+        debug3_label.configure(text='last_x:{0} last_y:{1}'.format(last_x,last_y))
+        stack_label.configure(text='points in stack:{0}'.format(point_stack))
 
         # TODO show debug info in different mode
         #debug4_label.configure(text='removed_id:{0}'.format(pop_id))
@@ -238,7 +244,6 @@ def show_debug(show):
         canvas_path_stack_label.configure(text='canvas path stack after {0}th append: {1}'.format(i, canvas_path_stack))
         #min_path_label.configure(text = 'closing min_path: {1}'.format(i,min_path))
         #history_paths_label.configure(text='closed history_paths : {1}'.format(i, history_paths))
-        stack_label.configure(text=point_stack)
 
 
 def remove_canvas_path(canvas_path_to_be_removed):
@@ -248,7 +253,7 @@ def remove_canvas_path(canvas_path_to_be_removed):
     #canvas_path_to_be_removed.clear()
 
 def draw_path(x,y,line_width):
-    global cursor_label, canvas_id, lastx, lasty, canvas_path, min_path_label, min_path
+    global cursor_label, canvas_id, last_x, last_y, canvas_path, min_path_label, min_path
     cursor_label.configure(text = 'getting path for x:{0} y:{1}'.format(cursor_x, cursor_y))
     min_path = obj.get_path((int(x),int(y)))
     set_color('red')
