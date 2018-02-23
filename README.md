@@ -11,7 +11,6 @@ pillow
 
 ## to run gui
 ```bash
-cd core
 python3 gui.py
 ```
 - allow open any image in system

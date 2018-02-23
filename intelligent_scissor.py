@@ -32,6 +32,7 @@ class IntelligentScissor():
         self.cost_graph=np.zeros((self.height*3, self.width*3, self.dim),
                 dtype=np.float32)
         self.node_dict = {}
+        self.mask = np.zeros((self.height, self.width),dtype=np.int32)
 
         self.INITIAL =0
         self.ACTIVE  =1
@@ -198,8 +199,9 @@ class IntelligentScissor():
     def update_path_dict(self, all_path):
         for path in all_path:
             for node in path:
-                self.node_dict[self.coordinate2key((node[1],node[0]))]=\
-                        PQ_Node(None, self.BORDER, None, 0)
+                node_item = self.node_dict[self.coordinate2key((node[1],node[0]))]
+                node_item.state = self.BORDER
+                self.node_dict[self.coordinate2key((node[1],node[0]))]=node_item
 
     def generate_mask(self, path_point):
         mask = np.zeros((self.height, self.width),dtype=np.int32)
@@ -235,7 +237,8 @@ class IntelligentScissor():
                 else:
                     continue
         if inside_flag == True:
-            mask = 1-mask
+            mask[1:-1,1:-1] = 1-mask[1:-1,1:-1]
+        self.mask = mask[:]
         return mask
 
 class PQ_Node():
@@ -248,7 +251,7 @@ class PQ_Node():
 if __name__=="__main__":
     import cv2
     #img = cv2.imread("../images/test2.jpg", cv2.IMREAD_GRAYSCALE)
-    img = cv2.imread("../images/test3.jpeg")
+    img = cv2.imread("./images/test3.jpeg")
     #img = cv2.resize(img, (15,15))
     seed = (240,199)
     obj = IntelligentScissor(img)

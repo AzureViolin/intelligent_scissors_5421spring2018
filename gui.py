@@ -2,7 +2,7 @@ import tkinter
 from tkinter import *
 from tkinter import ttk
 from tkinter import filedialog
-from PIL import ImageTk, Image
+from PIL import ImageTk, Image, ImageDraw
 from intelligent_scissor import IntelligentScissor
 import numpy as np
 import time
@@ -23,12 +23,14 @@ point_stack = []
 canvas_path = []
 canvas_path_stack = []
 min_path = []
+contour_stack = []
 history_paths = []
 
 #Global variables used within this file
 #file_name = ''
 #image = ''
 scissor_flag = False
+finish_flag = False
 lastx, lasty = 0, 0
 canvas_id = 0
 #start_x, start_y = 0, 0
@@ -49,23 +51,23 @@ about_window_exist = False
 #print('node dict generation time:', time.time() - start_time)
 
 def open_image():
-    global canvas, image, cvimg, scissor_flag, obj
+    global canvas, image, cvimg, scissor_flag,  obj, draw_image
     #TODO remove debug clause
     default = False
     scissor_flag = False
     if default == True:
-        image = ImageTk.PhotoImage(file='../images/test.jpg')
+        image = ImageTk.PhotoImage(file='./images/test.jpg')
         #cvimg = cv2.imread("../images/test.jpg")
-        cvimg = np.array(Image.open("../images/test.jpg"))
+        cvimg = np.array(Image.open("./images/test.jpg"))
         canvas.create_image(0,0, image=image, anchor=NW)
     else :
         #TODO get current path
-        file_name = filedialog.askopenfilename(initialdir = '../images')
+        file_name = filedialog.askopenfilename(initialdir = './images')
         image = ImageTk.PhotoImage(file=file_name)
-        #cvimg = cv2.imread(file_name)
-        cvimg = np.array(Image.open(file_name))
+        pil_img = Image.open(file_name)
         canvas.create_image(0,0, image=image, anchor=NW)
-    obj = IntelligentScissor(cvimg)
+        draw_image = ImageDraw.Draw(pil_img)
+    obj = IntelligentScissor(np.array(pil_img))
 
 def seed_to_graph(seed_x,seed_y):
     #global obj
@@ -86,8 +88,9 @@ def live_wire_mode(flag):
         canvas.configure(cursor = 'left_ptr')
 
 def start(event):
-    global lastx, lasty, start_x, start_y, scissor_flag, point_stack
+    global lastx, lasty, start_x, start_y, scissor_flag, point_stack, finish_flag
     live_wire_mode(True)
+    finish_flag = False
     start_x, start_y = canvas.canvasx(event.x), canvas.canvasy(event.y)
     lastx, lasty = start_x, start_y
     point_stack.append([start_x,start_y,-99])
@@ -96,7 +99,7 @@ def start(event):
     seed_to_graph(start_x,start_y)
 
 def close_contour_finish(event):
-    global scissor_flag, canvas_id, canvas_path_stack, canvas_path, i, history_paths
+    global scissor_flag, canvas_id, canvas_path_stack, canvas_path, i, history_paths, finish_flag, obj, contour_stack
     print('close contour finish called')
     if (scissor_flag == True):
         #canvas_id = canvas.create_line((lastx, lasty, start_x, start_y), fill=color, width=1,tags='currentline')
@@ -116,15 +119,17 @@ def close_contour_finish(event):
         live_wire_mode(False)
 
         point_stack.append([start_x,start_y,canvas_id])
+        finish_flag = True
         #TODO uncomment to integrate
-        #obj.generate_mask(history_paths)
+        obj.generate_mask(history_paths)
     else:
         print('Warning: end() is called before start()')
     show_debug(show = debug_setting)
 
 def finish(event):
-    global scissor_flag
+    global scissor_flag, finish_flag
     live_wire_mode(False)
+    finish_flag = True
     print('finish called')
 
 def click_xy(event):
@@ -161,11 +166,12 @@ def click_xy(event):
     show_debug(show = debug_setting)
 
 def delete_path(event):
-    global canvas_id, lastx, lasty, scissor_flag, canvas_path
+    global canvas_id, lastx, lasty, scissor_flag, canvas_path, canvas_path_stack, finish_flag
     #[popx, popy, pop_id] = point_stack[-1]
     if scissor_flag == True:
         [popx, popy, pop_id] = point_stack.pop()
         #stack_label.configure(text=point_stack)
+
         canvas_path_to_be_removed = canvas_path_stack.pop()
         min_path_to_be_removed = history_paths.pop()
         if pop_id == -99 :
@@ -179,12 +185,25 @@ def delete_path(event):
             #delete drawn path on canvas
             remove_canvas_path(canvas_path_to_be_removed)
 
+    elif finish_flag==True:
+        while len(canvas_path_stack)>0:
+            path = canvas_path_stack.pop()
+            remove_canvas_path(path)
+        live_wire_mode(False)
+        finish_flag = False
+        canvas_path_stack.clear()
+        canvas_path.clear()
+
     else:
         print('please move cursor inside an existing contour to delete')
         #TODO select existing contour and delete it
 
     #update debug info
     show_debug(show = debug_setting)
+
+def draw_line_image(path_):
+    # TODO draw path in canvas_path_stack to image and saved as countour
+    pass
 
 def get_xy(event):
     global cursor_x, cursor_y, cursor_label, canvas_id, lastx, lasty, canvas_path
@@ -259,10 +278,18 @@ def set_color(newcolor):
     canvas.itemconfigure('paletteSelected', outline='#999999')
 
 def save_contour():
-    return
+    if scissor_flag==True or finish_flag==True:
+        file_name = filedialog.asksaveasfilename(initialdir = './images',
+                filetypes = (("png files","*.png"), ("jpeg files","*.jpg")))
+        canvas.postscript(file=file_name, colormode='color')
+    #return
 
 def save_mask():
-    return
+    if finish_flag==True:
+        file_name = filedialog.asksaveasfilename(initialdir = './images',
+                filetypes = (("png files","*.png"), ("jpeg files","*.jpg")))
+        Image.fromarray((obj.mask*255).astype(np.uint8)).save(file_name)
+    #return
 
 def create_help_window():
     global help_window_exist
