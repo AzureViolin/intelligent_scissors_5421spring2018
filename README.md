@@ -37,6 +37,10 @@ Implemented additional feature:
 1. Scroll bar
 1. Different width for live wire and drawn path
 1. Change cursor to pencil when in live wire mode, change it back to pointer when not.
+1. Size grid at bottom right corner
+1. Auto resize canvas when window is resized
+1. Show mouse coordinates below canvas
+1. Help menu, Help and About window
 
 Wish list:
 1. point marker for marking start and intermediate points.
