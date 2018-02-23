@@ -11,6 +11,11 @@ import queue
 from heapq import *
 from collections import deque
 import time
+import copy
+
+
+link2coor={0:(0,1), 1:(-1,1), 2:(-1,0), 3:(-1,-1), 4:(0,-1), 5:(1,-1), 6:(1,0), 7:(1,1)}
+
 
 class IntelligentScissor():
 
@@ -33,8 +38,8 @@ class IntelligentScissor():
                 dtype=np.float32)
         self.pixel_node=np.zeros((self.height*3, self.width*3, self.dim),
                 dtype=np.int32)
-        self.path_tree=np.zeros((self.height*3, self.width*3, self.dim),
-                dtype=np.int32)
+        self.path_tree=np.zeros((self.height*3, self.width*3),
+                dtype=np.float32)
 
         self.node_dict = {}
         self.mask = np.zeros((self.height, self.width),dtype=np.int32)
@@ -69,7 +74,7 @@ class IntelligentScissor():
 
     def link_calculation(self):
 
-        up_down = self.pad_img[:-3,:,:] - self.pad_img[2:,:,:]
+        up_down = self.pad_img[:-2,:,:] - self.pad_img[2:,:,:]
         link_cost_0 = np.abs(up_down[:,1:-1,:] + up_down[:,2:,:])/4
         self.link_cost[:,:,0] = np.sqrt(np.sum(link_cost_0**2, axis=2)/self.dim)
 
@@ -116,38 +121,42 @@ class IntelligentScissor():
         pathtree_q=deque()
         seed_key = self.coordinate2key((1, 1))
         pathtree_q.append(seed_key)
+        node_dict = copy.deepcopy(self.node_dict)
+        
         while len(pathtree_q) > 0:
-            root_key = dq.popleft()
-            root_node = self.node_dict[root_key]
-            while root_node.prev_node != None:
-                root_prev_node = root_node.prev_node[0]
-                root_prev_link = root_node.prev_node[1]
-            
-                root_row = root_key//self.width
-                root_column = root_key%self.width
+            root_key = pathtree_q.popleft()
+            root_node = node_dict[root_key]
+            prev_node_pair = root_node.prev_node
+
+            for n_pose in root_node.neighbours:
+                n_pose_node = node_dict[n_pose[0]]
+                n_pose_state = n_pose_node.state
+                if n_pose_state == self.INITIAL:
+                    pathtree_q.append(n_pose[0])
+                    n_pose_node.state = self.ACTIVE
+                    node_dict[n_pose[0]] = n_pose_node
                 
-                self.path_tree[root_row][root]
+            while prev_node != None:
+                prev_key = prev_node[0]
+                prev_link = prev_node[1]
+                prev_node_node = node_dict[prev_key]
+
+                root_row = prev_key//self.width
+                root_column = prev_key%self.width
+
+                link_change = link2coor[(prev_key+4)%8]
+
+                self.path_tree[root_row*3][root_column*3]=prev_node.cost
+                self.path_tree[root_row+link_change[0]][root_column+link_change[1]]=prev_node.cost
+                self.path_tree[root_row+link_change[0]*2][root_column+link_change[1]*2]=prev_node.cost
                 
-                mask[root_row][root_column]=1
+                #mask[root_row][root_column]=1
+                prev_node.prev_node = None 
                 
-                self.node_dict[root_key] = root_node
-                for n_pose in root_node.neighbours[::2]:
-                    n_pose_node = self.node_dict[n_pose[0]]
-                    n_pose_state = n_pose_node.state
-                    if n_pose_state == self.INITIAL:
-                        dq.append(n_pose[0])
-                        n_pose_node.state = self.ACTIVE
-                        self.node_dict[n_pose[0]] = n_pose_node
-                    elif ((inside_flag == False) and (n_pose_state==self.EXPAND)):
-                        inside_flag = True
-            
-            if inside_flag == True:
-                mask[1:-1,1:-1] = 1-mask[1:-1,1:-1]
-            
-            self.contour_mask_list.append((mask[:], close))
-            if close:
-                self.mask = self.mask + mask
-            return mask
+                node_dict[prev_key] = root_node
+                prev_node = node_dict[root_prev_key].prev_node
+
+        Image.fromarray(int(self.path_tree/np.max(self.path_tree)*255).astype(np.uint8)).save("./images/test_path_tree.png")
 
     def cost_map_generation(self):
         self.update_seed_node(self.seed)
@@ -183,7 +192,7 @@ class IntelligentScissor():
                         heappush(self.pq, (new_cost, n_pose[0]))
                         n_pose_node.prev_node = (prev_node_key, k)
                         n_pose_node.cost = new_cost
-                        self.node_dict[n_pose[0]]=n_pose_node
+                        self.node_dict[n_pose[-1]]=n_pose_node
 
 
     def get_neighbor_nodes(self, pose):
@@ -298,7 +307,7 @@ class IntelligentScissor():
             self.mask = self.mask - self.contour_mask_list[idx_][0]
         del self.contour_mask_list[idx_]
 
-    def coordinate_mask(self, (x,y)):
+    def coordinate_mask(self, x,y):
         for i, item in enumerate(self.contour_mask_list):
             if item[0][y][x] == 1:
                 return i, item 
