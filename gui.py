@@ -15,8 +15,8 @@ START_COUNTER_STATE =2
 PROCESS_COUNTER_STATE=3
 FINISH_STATE=4
 FINISH_CLOSE_STATE=5
-CHOOSE_STATE=6
-CONTOUR_DELETE=7
+CONTOUR_HIGHTLIGHT=6
+CHOOSE_CHOOSE=7
 
 gloabl_state = -1
 
@@ -66,6 +66,7 @@ class GUI():
         self.canvas_id = 0
         #self.canvas = canvas
         self.main_loop()
+        self.contour_idx = None
 
     def main_loop(self):
         root = Tk()
@@ -179,7 +180,6 @@ class GUI():
         draw_image = ImageDraw.Draw(pil_img)
         self.obj = IntelligentScissor(np.array(pil_img))
         self.state = LOAD_IMAGE_STATE
-        self.state = PREPARE_STATE
     
     def seed_to_graph(self, seed_x,seed_y):
         #global obj
@@ -225,7 +225,7 @@ class GUI():
             self.canvas_path_stack.append(self.canvas_path[:])
             path = self.obj.get_path((int(self.startx),int(self.starty)))
             self.history_paths.append(path[:])
-            self.history_contour.append(self.history_paths[:])
+            self.history_contour.append((self.history_paths[:],1))
 
             #path_label.configure(text = '{0}th canvas_path: {1}'.format(i,canvas_path))
             self.path_label.configure(text = 'closing path: {1}'.format(i,path))
@@ -233,7 +233,7 @@ class GUI():
             #self.history_paths_label.configure(text='closed history_paths : {1}'.format(i, history_paths))
             #i = i + 1
             
-            self.canvas_path.clear()
+            #self.canvas_path.clear()
             self.xy_stack.append([self.startx,self.starty,self.canvas_id])
             self.stack_label.configure(text=self.xy_stack)
             # TODO uncomment to integrate
@@ -247,8 +247,13 @@ class GUI():
         #start_flag = False
         #finish_flag = True
         if self.state==PROCESS_COUNTER_STATE:
+            self.remove_canvas_path(self.canvas_path)
             self.state=FINISH_STATE
             self.contour_stack.append(self.canvas_path_stack[:])
+            
+            path = self.obj.get_path((int(self.startx),int(self.starty)))
+            self.history_paths.append(path[:])
+            self.history_contour.append((self.history_paths[:],0))
             
 
         #print('finish called')
@@ -286,11 +291,43 @@ class GUI():
             self.xy_stack.append([x,y,canvas_id])
             self.stack_label.configure(text=xy_stack)
             self.state = PROCESS_COUNTER_STATE
+        
+        elif self.state==FINISH_STATE or self.state==FINISH_CLOSE_STATE or (self.state==PREPARE_STATE and len(self.history_contour)>0):
+            self.set_color('green')
+            self.highlight_id = []
+            #x, y = self.canvas.canvasx(event.x), self.canvas.canvasy(event.y)
+            mask_, self.contour_idx = self.obj.generate_mask(self.history_contour, 
+                    int(self.canvas.canvasx(event.x)), 
+                    int(self.canvas.canvasy(event.y)),
+                    False)
+            print ("contour_hight_idx:", self.contour_idx)
+            #for i, contour in enumerate(self.contour_stack):
+                #for j,path in enumerate(contour):
+                    #if (self.cursor_x, self.cursor_y) in path:
+                        #self.state = CHOOSE_STATE
+                        #for path in contour:
+                            #for index, point in enumerate(path[:-1]):
+                                ##if index < (path_len - 1):
+                                #next_point = path[index + 1]
+                                ##else:
+                                    ##print('reached last point, break for loop')
+                                    ##break
+                                #canvas_id = self.canvas.create_line((point[0],point[1],next_point[0],next_point[1]), fill = self.color, width = 1, tags = 'currentline')
+                                #self.highlight_id.append(canvas_id)
+            self.highlight_id = self.canvas.create_polygon(self.history_contour[self.contour_idx], fill = self.color, width = 1, tags = 'currentline')
             
-        elif self.state==CHOOSE_STATE:
+            self.state=CONTOUR_HIGHTLIGHT
+            # TODO highlight the chosen contour
+            # and update to hightlight CHOOSE_STATE
+            #pass 
+
+
+        elif self.state==CONTOUR_HIGHTLIGHT:
             #self.state=CHOOSE_STATE
-            self.state=CONTOUR_DELETE
-            # TODO choose the seleected path
+            # TODO cancel highlight the chosen contour
+            self.state=PREPARE_STATE
+            self.contour_idx=None
+
         self.debug_label.configure(text='start_flag:{0}'.format(start_flag))
         self.debug2_label.configure(text='line_id:{0}'.format(canvas_id))
         self.debug3_label.configure(text='lastx:{0} lasty:{1}'.format(lastx,lasty))
@@ -336,7 +373,7 @@ class GUI():
                 self.state=self.PREPARE_STATE
 
 
-        elif self.state==CONTOUR_DELETE:
+        elif self.state==CONTOUR_CHOOSE:
             #  TODO delete the selected path
             #pass
             #while len(canvas_path_stack)>0:
@@ -372,12 +409,9 @@ class GUI():
             path = self.obj.get_path((int(self.cursor_x),int(self.cursor_y)))
             #path_label.configure(text = 'current canvas_path: {1}'.format(i,canvas_path))
             #path_label.configure(text = 'current path: {1}'.format(i,path))
-        elif self.state==FINISH_STATE or self.state==FINISH_CLOSE_STATE or self.state==PREPARE_STATE:
-            #self.state=CHOOSE_STATE
-            # TODO highlight the chosen contour
-            # and update to hightlight CHOOSE_STATE
-            pass 
-
+        #if self.state==FINISH_STATE:
+            #self.remove_canvas_path(self.canvas_path)
+    
     def set_color(self, newcolor):
         self.color = newcolor
         self.canvas.dtag('all', 'paletteSelected')
