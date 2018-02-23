@@ -12,7 +12,7 @@ from heapq import *
 from collections import deque
 import time
 import copy
-
+from PIL import Image
 
 link2coor={0:(0,1), 1:(-1,1), 2:(-1,0), 3:(-1,-1), 4:(0,-1), 5:(1,-1), 6:(1,0), 7:(1,1)}
 
@@ -29,7 +29,7 @@ class IntelligentScissor():
         self.width = img.shape[1]
         self.img = img.reshape(self.height, self.width, -1).astype(np.float32)
         self.dim = self.img.shape[2]
-        self.pad_img = np.lib.pad(self.img, 
+        self.pad_img = np.lib.pad(self.img,
                 ((1,1),(1,1),(0,0)), 'constant', constant_values=0)
 
         self.link_cost = np.zeros((self.height, self.width, 8),
@@ -50,7 +50,6 @@ class IntelligentScissor():
         self.BORDER  =3
         self.link_calculation()
         self.generate_all_node_dict()
-        
         self.contour_mask_list = []
 
     def coordinate2key(self, pose):
@@ -65,8 +64,8 @@ class IntelligentScissor():
         pose = (pose[1],pose[0])
         pose_key = self.coordinate2key(pose)
         while self.node_dict[pose_key].prev_node != None:
-            new_pose_key = self.node_dict[pose_key].prev_node[0] 
-            new_pose_node = self.node_dict[new_pose_key]
+            new_pose_key = self.node_dict[pose_key].prev_node[0]
+            #new_pose_node = self.node_dict[new_pose_key]
             new_pose = self.key2coordinate(new_pose_key)
             path.append((new_pose[1],new_pose[0]))
             pose_key = new_pose_key
@@ -94,7 +93,6 @@ class IntelligentScissor():
         self.link_cost[ :-1, 1:,  5] = self.link_cost[1:,   :-1,  1]
 
         self.pixel_node[1::3,1::3,:]=self.img
-        
         link_length = np.array([1,np.sqrt(2),1,np.sqrt(2),1,np.sqrt(2),1,np.sqrt(2)])
         self.link_cost = ((np.max(self.link_cost)-self.link_cost)*link_length)/2
         self.cost_graph[1::3,1::3,:]=self.link_cost[:,:,:1]\
@@ -115,14 +113,14 @@ class IntelligentScissor():
                 +np.zeros(self.dim)
         self.cost_graph[1::3,1::3,:]=self.img
         return self.cost_graph
-    
+
     def path_tree_generation(self):
         self.update_node_dict()
         pathtree_q=deque()
         seed_key = self.coordinate2key((1, 1))
         pathtree_q.append(seed_key)
         node_dict = copy.deepcopy(self.node_dict)
-        
+
         while len(pathtree_q) > 0:
             root_key = pathtree_q.popleft()
             root_node = node_dict[root_key]
@@ -135,28 +133,50 @@ class IntelligentScissor():
                     pathtree_q.append(n_pose[0])
                     n_pose_node.state = self.ACTIVE
                     node_dict[n_pose[0]] = n_pose_node
-                
-            while prev_node != None:
-                prev_key = prev_node[0]
-                prev_link = prev_node[1]
-                prev_node_node = node_dict[prev_key]
 
-                root_row = prev_key//self.width
-                root_column = prev_key%self.width
+            while prev_node_pair != None:
+                prev_key = prev_node_pair[0]
+                prev_link = prev_node_pair[1]
+                prev_node = node_dict[prev_key]
 
-                link_change = link2coor[(prev_key+4)%8]
+                root_row = root_key//self.width
+                root_column = root_key%self.width
 
-                self.path_tree[root_row*3][root_column*3]=prev_node.cost
-                self.path_tree[root_row+link_change[0]][root_column+link_change[1]]=prev_node.cost
-                self.path_tree[root_row+link_change[0]*2][root_column+link_change[1]*2]=prev_node.cost
-                
+                link_change = link2coor[(prev_link+4)%8]
+
+                self.path_tree[root_row*3][root_column*3]=root_node.cost
+                self.path_tree[root_row*3+link_change[0]][root_column*3+link_change[1]]=root_node.cost
+                self.path_tree[root_row*3+link_change[0]*2][root_column*3+link_change[1]*2]=root_node.cost
+
                 #mask[root_row][root_column]=1
-                prev_node.prev_node = None 
-                
-                node_dict[prev_key] = root_node
-                prev_node = node_dict[root_prev_key].prev_node
+                root_node.prev_node = None
+                node_dict[root_key] = root_node
 
-        Image.fromarray(int(self.path_tree/np.max(self.path_tree)*255).astype(np.uint8)).save("./images/test_path_tree.png")
+                root_key=prev_key
+                root_node = node_dict[root_key]
+                prev_node_pair = root_node.prev_node
+
+        self.path_tree = np.expand_dims((self.path_tree/np.max(self.path_tree)*255).astype(np.uint8), axis=2)
+        self.path_tree = np.concatenate([self.path_tree, self.path_tree, np.zeros((self.height*3, self.width*3,1), dtype=np.uint8)],axis=2 )
+        #Image.fromarray((self.path_tree/np.max(self.path_tree)*255).astype(np.uint8)).save("./images/test_path_tree.png")
+        Image.fromarray(self.path_tree).save("./images/test_path_tree.png")
+
+    def get_path_from_tree(self, pose):
+        path = []
+        path.append(pose)
+        pose = (pose[1],pose[0])
+        pose_key = self.coordinate2key((pose[0]//3, pose[1]//3))
+        while self.node_dict[pose_key].prev_node != None:
+            new_pose_key = self.node_dict[pose_key].prev_node[0]
+            prev_link = self.node_dict[pose_key].prev_node[1] 
+            link_change = link2coor[prev_link]
+            #new_pose_node = self.node_dict[new_pose_key]
+            new_pose = self.key2coordinate(new_pose_key)
+            path.append((new_pose[1]*3+link_change[1]*2,new_pose[0]*3+link_change[0]*2))
+            path.append((new_pose[1]*3+link_change[1],new_pose[0]*3+link_change[0]))
+            path.append((new_pose[1]*3,new_pose[0]*3))
+            pose_key = new_pose_key
+        return path
 
     def cost_map_generation(self):
         self.update_seed_node(self.seed)
@@ -223,18 +243,18 @@ class IntelligentScissor():
         for i in range(1,self.height-1):
             for j in range(1,self.width-1):
                 self.node_dict[self.coordinate2key((i,j))]=\
-                        PQ_Node(None, 
-                                self.INITIAL, 
-                                self.get_neighbor_node_keys((i,j), 
-                                    self.link_cost[i][j]), 
+                        PQ_Node(None,
+                                self.INITIAL,
+                                self.get_neighbor_node_keys((i,j),
+                                    self.link_cost[i][j]),
                                 0)
         self.margin_node_update()
 
     def update_seed(self, seed):
         self.seed = (seed[1], seed[0])
-    
+
     def update_seed_node(self, seed):
-        seed_key = self.coordinate2key(seed) 
+        seed_key = self.coordinate2key(seed)
         seed_node = self.node_dict[seed_key]
         seed_node.prev_node = None
         self.node_dict[seed_key] = seed_node
@@ -255,7 +275,7 @@ class IntelligentScissor():
             for j in [0, self.width-1]:
                 self.node_dict[self.coordinate2key((i,j))]=\
                         PQ_Node(None, self.EXPAND, None, 0)
-    
+
     def update_path_dict(self, all_path):
         for path in all_path:
             for node in path:
@@ -293,10 +313,8 @@ class IntelligentScissor():
                     self.node_dict[n_pose[0]] = n_pose_node
                 elif ((inside_flag == False) and (n_pose_state==self.EXPAND)):
                     inside_flag = True
-        
         if inside_flag == True:
             mask[1:-1,1:-1] = 1-mask[1:-1,1:-1]
-        
         self.contour_mask_list.append((mask[:], close))
         if close:
             self.mask = self.mask + mask
