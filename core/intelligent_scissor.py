@@ -199,8 +199,9 @@ class IntelligentScissor():
     def update_path_dict(self, all_path):
         for path in all_path:
             for node in path:
-                self.node_dict[self.coordinate2key((node[1],node[0]))]=\
-                        PQ_Node(None, self.BORDER, None, 0)
+                node_item = self.node_dict[self.coordinate2key((node[1],node[0]))]
+                node_item.state = self.BORDER
+                self.node_dict[self.coordinate2key((node[1],node[0]))]=node_item
 
     def generate_mask(self, path_point):
         mask = np.zeros((self.height, self.width),dtype=np.int32)

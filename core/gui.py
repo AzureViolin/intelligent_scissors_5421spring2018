@@ -144,7 +144,7 @@ def click_xy(event):
     debug3_label.configure(text='lastx:{0} lasty:{1}'.format(lastx,lasty))
 
 def delete_path(event):
-    global canvas_id, lastx, lasty, start_flag, canvas_path
+    global canvas_id, lastx, lasty, start_flag, canvas_path, canvas_path_stack, start_flag, finish_flag
     #[popx, popy, pop_id] = xy_stack[-1]
     if start_flag == True:
         [popx, popy, pop_id] = xy_stack.pop()
@@ -169,6 +169,14 @@ def delete_path(event):
             debug_label.configure(text='canvas_id:{0}'.format(canvas_id))
             debug2_label.configure(text='removed_id:{0}'.format(pop_id))
             debug3_label.configure(text='lastx:{0} lasty:{1}'.format(lastx,lasty))
+    elif finish_flag==True:
+        while len(canvas_path_stack)>0:
+            path = canvas_path_stack.pop()
+            remove_canvas_path(path)
+        start_flag = False
+        finish_flag = False
+        canvas_path_stack.clear()
+        canvas_path.clear()
     else:
         print('please move cursor inside an existing contour to delete')
         #TODO select existing contour and delete it
@@ -227,17 +235,18 @@ def set_color(newcolor):
     canvas.itemconfigure('paletteSelected', outline='#999999')
 
 def save_contour():
-    file_name = filedialog.asksaveasfilename(initialdir = '../images',
-            filetypes = (("png files","*.png"), ("jpeg files","*.jpg")))
-    canvas.postscript(file=file_name, colormode='color')
-    return
+    if start_flag==True or finish_flag==True:
+        file_name = filedialog.asksaveasfilename(initialdir = '../images',
+                filetypes = (("png files","*.png"), ("jpeg files","*.jpg")))
+        canvas.postscript(file=file_name, colormode='color')
+    #return
 
 def save_mask():
     if finish_flag==True:
         file_name = filedialog.asksaveasfilename(initialdir = '../images',
                 filetypes = (("png files","*.png"), ("jpeg files","*.jpg")))
         Image.fromarray((obj.mask*255).astype(np.uint8)).save(file_name)
-    return
+    #return
 
 def create_scissor_window():
     scissor_window = tkinter.Toplevel(root)
