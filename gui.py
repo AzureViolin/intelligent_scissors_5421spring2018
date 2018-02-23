@@ -74,7 +74,7 @@ def seed_to_graph(seed_x,seed_y):
     start_time = time.time()
     #print('cost_map_generation')
     obj.cost_map_generation()
-    obj.path_tree_generation()
+    #obj.path_tree_generation()
 
     print('cost map generation time:', time.time() - start_time)
     #print('cost map generation COMPLETED')
