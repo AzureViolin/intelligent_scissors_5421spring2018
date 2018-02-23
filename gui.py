@@ -149,10 +149,10 @@ def click_xy(event):
         set_color('green')
         #fix current path on canvas, start new seed
         canvas.itemconfigure(canvas_path,width =unfocus_width)
-        canvas_path = -99
         min_path = obj.get_path((int(x),int(y)))
         history_paths.append(min_path[:])
         canvas_path_stack.append(canvas_path)
+        canvas_path = -99
         i = i + 1
         #canvas.delete(canvas_path)
         #generate new graph with new seed
@@ -237,11 +237,14 @@ def get_xy(event):
         #min_path_label.configure(text = 'current canvas_path: {1}'.format(i,canvas_path))
     else:
         hovered_mask_idx = obj.coordinate_mask(int(cursor_x),int(cursor_y))
-        last_hovered_mask = hovered_mask_idx
-        if hovered_mask_idx == -99:
-            highlight_contour(canvas_contour_stack[last_hovered_mask], width = unfocus_width, color = 'green')
+        if hovered_mask_idx == None:
+            pass
         else:
-            highlight_contour(canvas_contour_stack[hovered_mask_idx], width = focus_width, color = 'red')
+            last_hovered_mask = hovered_mask_idx
+            if hovered_mask_idx == -99:
+                highlight_contour(canvas_contour_stack[last_hovered_mask], width = unfocus_width, color = 'green')
+            else:
+                highlight_contour(canvas_contour_stack[hovered_mask_idx], width = focus_width, color = 'red')
 
 
     show_debug(show = debug_setting)
@@ -253,6 +256,7 @@ def show_debug(show):
         debug3_label.configure(text='last_x:{0} last_y:{1}'.format(last_x,last_y))
         stack_label.configure(text='points in stack:{0}'.format(point_stack))
         history_paths_label.configure(text='canvas_contour_stack {0}: {1}'.format(i, canvas_contour_stack))
+        hover_mask_label.configure(text = 'hover mask idx:{0} last hover idx:{1}'.format(hovered_mask_idx, last_hovered_mask))
 
         # TODO show debug info in different mode
         #debug4_label.configure(text='removed_id:{0}'.format(pop_id))
@@ -308,14 +312,14 @@ def set_color(newcolor):
     canvas.itemconfigure('paletteSelected', outline='#999999')
 
 def save_contour():
-    if scissor_flag==True or finish_flag==True:
+    if scissor_flag==False: 
         file_name = filedialog.asksaveasfilename(initialdir = './output',
                 filetypes = (("png files","*.png"), ("jpeg files","*.jpg")))
         canvas.postscript(file=file_name, colormode='color')
     #return
 
 def save_mask():
-    if finish_flag==True:
+    if scissor_flag==False:
         file_name = filedialog.asksaveasfilename(initialdir = './output',
                 filetypes = (("png files","*.png"), ("jpeg files","*.jpg")))
         Image.fromarray((obj.mask*255).astype(np.uint8)).save(file_name)
@@ -484,19 +488,22 @@ debug2_label.grid(column = 1, row = 5, sticky = (W,N))
 debug3_label = ttk.Label(mainframe, text='<debug3 info>')
 debug3_label.grid(column = 2, row = 5, sticky = (W,N))
 
+hover_mask_label = ttk.Label(mainframe, text='<hover_mask info>')
+hover_mask_label.grid(column = 0, row = 6, sticky = (W,N))
+
 
 stack_label = ttk.Label(mainframe, text='<stack info>', wraplength = wrap_length, justify = 'left')
-stack_label.grid(column = 0, row = 6, columnspan = 4, sticky = (W,N))
+stack_label.grid(column = 0, row = 16, columnspan = 4, sticky = (W,N))
 
 canvas_path_label = ttk.Label(mainframe, text='<canvas path info>', wraplength = wrap_length, justify = 'left')
-canvas_path_label.grid(column = 0, row = 7, columnspan = 4, sticky = (W,N))
+canvas_path_label.grid(column = 0, row = 17, columnspan = 4, sticky = (W,N))
 canvas_path_stack_label = ttk.Label(mainframe, text='<canvas path stack info>', wraplength = wrap_length, justify = 'left')
-canvas_path_stack_label.grid(column = 0, row = 8, columnspan = 4, sticky = (W,N))
+canvas_path_stack_label.grid(column = 0, row = 18, columnspan = 4, sticky = (W,N))
 
 min_path_label = ttk.Label(mainframe, text='<min path info>', wraplength = wrap_length, justify = 'left')
-min_path_label.grid(column = 0, row = 9, columnspan = 4, sticky = (W,N))
+min_path_label.grid(column = 0, row = 19, columnspan = 4, sticky = (W,N))
 history_paths_label = ttk.Label(mainframe, text='<history paths info>', wraplength = wrap_length, justify = 'left')
-history_paths_label.grid(column = 0, row = 10, columnspan = 4, sticky = (W,N))
+history_paths_label.grid(column = 0, row = 20, columnspan = 4, sticky = (W,N))
 
 
 #Main function binding
