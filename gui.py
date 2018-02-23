@@ -213,6 +213,8 @@ def delete_path(event):
         else:
             obj.delete_mask(hovered_mask_idx)
             remove_canvas_contour(canvas_contour_stack[hovered_mask_idx])
+            canvas_contour_stack.pop(hovered_mask_idx)
+            history_contour.pop(hovered_mask_idx)
 
         #TODO select existing contour and delete it
 
@@ -236,15 +238,15 @@ def get_xy(event):
         #in_path = obj.get_path((int(cursor_x),int(cursor_y)))
         #min_path_label.configure(text = 'current canvas_path: {1}'.format(i,canvas_path))
     else:
-        hovered_mask_idx = obj.coordinate_mask(int(cursor_x),int(cursor_y))
-        if hovered_mask_idx == None:
+        if len(obj.contour_mask_list) == 0:
             pass
         else:
-            last_hovered_mask = hovered_mask_idx
+            hovered_mask_idx = obj.coordinate_mask(int(cursor_x),int(cursor_y))
             if hovered_mask_idx == -99:
                 highlight_contour(canvas_contour_stack[last_hovered_mask], width = unfocus_width, color = 'green')
             else:
                 highlight_contour(canvas_contour_stack[hovered_mask_idx], width = focus_width, color = 'red')
+                last_hovered_mask = hovered_mask_idx
 
 
     show_debug(show = debug_setting)
@@ -257,6 +259,7 @@ def show_debug(show):
         stack_label.configure(text='points in stack:{0}'.format(point_stack))
         history_paths_label.configure(text='canvas_contour_stack {0}: {1}'.format(i, canvas_contour_stack))
         hover_mask_label.configure(text = 'hover mask idx:{0} last hover idx:{1}'.format(hovered_mask_idx, last_hovered_mask))
+        min_path_label.configure(text = 'obj contour mask list{0}: {1}'.format(i,obj.contour_mask_list))
 
         # TODO show debug info in different mode
         #debug4_label.configure(text='removed_id:{0}'.format(pop_id))
