@@ -11,7 +11,6 @@ tkinter
 
 ## to run gui
 ```bash
-cd core
 python3 gui.py
 ```
 - support open any image in system
