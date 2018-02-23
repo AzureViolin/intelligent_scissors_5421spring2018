@@ -2,7 +2,7 @@ import tkinter
 from tkinter import *
 from tkinter import ttk
 from tkinter import filedialog
-from PIL import ImageTk, Image
+from PIL import ImageTk, Image, ImageDraw
 from intelligent_scissor import IntelligentScissor
 import numpy as np
 import time
@@ -21,6 +21,7 @@ history_paths = []
 #file_name = ''
 #image = ''
 start_flag = False
+finish_flag = False
 lastx, lasty = 0, 0
 canvas_id = 0
 #startx, starty = 0, 0
@@ -35,7 +36,7 @@ wrap_length = 1920
 #print('node dict generation time:', time.time() - start_time)
 
 def open_image():
-    global canvas, image, cvimg, start_flag, obj
+    global canvas, image, cvimg, start_flag, obj, draw_image
     #TODO remove debug clause
     default = False
     start_flag = False
@@ -48,10 +49,10 @@ def open_image():
         #TODO get current path
         file_name = filedialog.askopenfilename(initialdir = '../images')
         image = ImageTk.PhotoImage(file=file_name)
-        #cvimg = cv2.imread(file_name)
-        cvimg = np.array(Image.open(file_name))
+        pil_img = Image.open(file_name)
         canvas.create_image(0,0, image=image, anchor=NW)
-    obj = IntelligentScissor(cvimg)
+        draw_image = ImageDraw.Draw(pil_img)
+    obj = IntelligentScissor(np.array(pil_img))
 
 def seed_to_graph(seed_x,seed_y):
     #global obj
@@ -63,8 +64,9 @@ def seed_to_graph(seed_x,seed_y):
     #print('cost map generation COMPLETED')
 
 def start(event):
-    global lastx, lasty, startx, starty, start_flag, xy_stack
+    global lastx, lasty, startx, starty, start_flag, xy_stack, finish_flag
     start_flag = True
+    finish_flag = False
     startx, starty = canvas.canvasx(event.x), canvas.canvasy(event.y)
     lastx, lasty = startx, starty
     xy_stack.append([startx,starty,-99])
@@ -73,7 +75,7 @@ def start(event):
     seed_to_graph(startx,starty)
 
 def close_contour_finish(event):
-    global start_flag, canvas_id, canvas_path_stack, canvas_path, i, history_paths
+    global start_flag, canvas_id, canvas_path_stack, canvas_path, i, history_paths, finish_flag, obj
     print('close contour finish called')
     if (start_flag == True):
         #canvas_id = canvas.create_line((lastx, lasty, startx, starty), fill=color, width=1,tags='currentline')
@@ -92,17 +94,18 @@ def close_contour_finish(event):
 
         canvas_path.clear()
         start_flag = False
-
+        finish_flag = True
         xy_stack.append([startx,starty,canvas_id])
         stack_label.configure(text=xy_stack)
         #TODO uncomment to integrate
-        #obj.generate_mask(history_paths)
+        obj.generate_mask(history_paths)
     else:
         print('Warning: end() is called before start()')
 
 def finish(event):
-    global start_flag
+    global start_flag, finish_flag
     start_flag = False
+    finish_flag = True
     print('finish called')
 
 def click_xy(event):
@@ -136,7 +139,6 @@ def click_xy(event):
         lastx, lasty = x, y
         xy_stack.append([x,y,canvas_id])
         stack_label.configure(text=xy_stack)
-
     debug_label.configure(text='start_flag:{0}'.format(start_flag))
     debug2_label.configure(text='line_id:{0}'.format(canvas_id))
     debug3_label.configure(text='lastx:{0} lasty:{1}'.format(lastx,lasty))
@@ -225,9 +227,16 @@ def set_color(newcolor):
     canvas.itemconfigure('paletteSelected', outline='#999999')
 
 def save_contour():
+    file_name = filedialog.asksaveasfilename(initialdir = '../images',
+            filetypes = (("png files","*.png"), ("jpeg files","*.jpg")))
+    canvas.postscript(file=file_name, colormode='color')
     return
 
 def save_mask():
+    if finish_flag==True:
+        file_name = filedialog.asksaveasfilename(initialdir = '../images',
+                filetypes = (("png files","*.png"), ("jpeg files","*.jpg")))
+        Image.fromarray((obj.mask*255).astype(np.uint8)).save(file_name)
     return
 
 def create_scissor_window():

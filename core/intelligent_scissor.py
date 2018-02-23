@@ -32,6 +32,7 @@ class IntelligentScissor():
         self.cost_graph=np.zeros((self.height*3, self.width*3, self.dim),
                 dtype=np.float32)
         self.node_dict = {}
+        self.mask = np.zeros((self.height, self.width),dtype=np.int32)
 
         self.INITIAL =0
         self.ACTIVE  =1
@@ -235,7 +236,8 @@ class IntelligentScissor():
                 else:
                     continue
         if inside_flag == True:
-            mask = 1-mask
+            mask[1:-1,1:-1] = 1-mask[1:-1,1:-1]
+        self.mask = mask[:]
         return mask
 
 class PQ_Node():
