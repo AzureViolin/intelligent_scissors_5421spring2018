@@ -31,6 +31,11 @@ class IntelligentScissor():
                 dtype=np.float32)
         self.cost_graph=np.zeros((self.height*3, self.width*3, self.dim),
                 dtype=np.float32)
+        self.pixel_node=np.zeros((self.height*3, self.width*3, self.dim),
+                dtype=np.int32)
+        self.path_tree=np.zeros((self.height*3, self.width*3, self.dim),
+                dtype=np.int32)
+
         self.node_dict = {}
         self.mask = np.zeros((self.height, self.width),dtype=np.int32)
 
@@ -41,6 +46,8 @@ class IntelligentScissor():
         self.link_calculation()
         self.generate_all_node_dict()
         
+        self.contour_mask_list = []
+
     def coordinate2key(self, pose):
         return self.width*pose[0]+pose[1]
 
@@ -53,7 +60,7 @@ class IntelligentScissor():
         pose = (pose[1],pose[0])
         pose_key = self.coordinate2key(pose)
         while self.node_dict[pose_key].prev_node != None:
-            new_pose_key = self.node_dict[pose_key].prev_node 
+            new_pose_key = self.node_dict[pose_key].prev_node[0] 
             new_pose_node = self.node_dict[new_pose_key]
             new_pose = self.key2coordinate(new_pose_key)
             path.append((new_pose[1],new_pose[0]))
@@ -62,7 +69,7 @@ class IntelligentScissor():
 
     def link_calculation(self):
 
-        up_down = self.pad_img[:-2,:,:] - self.pad_img[2:,:,:]
+        up_down = self.pad_img[:-3,:,:] - self.pad_img[2:,:,:]
         link_cost_0 = np.abs(up_down[:,1:-1,:] + up_down[:,2:,:])/4
         self.link_cost[:,:,0] = np.sqrt(np.sum(link_cost_0**2, axis=2)/self.dim)
 
@@ -81,9 +88,11 @@ class IntelligentScissor():
         self.link_cost[1:,   1:,  3] = self.link_cost[ :-1, :-1,  7]
         self.link_cost[ :-1, 1:,  5] = self.link_cost[1:,   :-1,  1]
 
+        self.pixel_node[1::3,1::3,:]=self.img
+        
         link_length = np.array([1,np.sqrt(2),1,np.sqrt(2),1,np.sqrt(2),1,np.sqrt(2)])
         self.link_cost = ((np.max(self.link_cost)-self.link_cost)*link_length)/2
-        self.cost_graph[1::3,2::3,:]=self.link_cost[:,:,:1]\
+        self.cost_graph[1::3,1::3,:]=self.link_cost[:,:,:1]\
                 +np.zeros(self.dim)
         self.cost_graph[ ::3,2::3,:]=self.link_cost[:,:,1:2]\
                 +np.zeros(self.dim)
@@ -101,6 +110,44 @@ class IntelligentScissor():
                 +np.zeros(self.dim)
         self.cost_graph[1::3,1::3,:]=self.img
         return self.cost_graph
+    
+    def path_tree_generation(self):
+        self.update_node_dict()
+        pathtree_q=deque()
+        seed_key = self.coordinate2key((1, 1))
+        pathtree_q.append(seed_key)
+        while len(pathtree_q) > 0:
+            root_key = dq.popleft()
+            root_node = self.node_dict[root_key]
+            while root_node.prev_node != None:
+                root_prev_node = root_node.prev_node[0]
+                root_prev_link = root_node.prev_node[1]
+            
+                root_row = root_key//self.width
+                root_column = root_key%self.width
+                
+                self.path_tree[root_row][root]
+                
+                mask[root_row][root_column]=1
+                
+                self.node_dict[root_key] = root_node
+                for n_pose in root_node.neighbours[::2]:
+                    n_pose_node = self.node_dict[n_pose[0]]
+                    n_pose_state = n_pose_node.state
+                    if n_pose_state == self.INITIAL:
+                        dq.append(n_pose[0])
+                        n_pose_node.state = self.ACTIVE
+                        self.node_dict[n_pose[0]] = n_pose_node
+                    elif ((inside_flag == False) and (n_pose_state==self.EXPAND)):
+                        inside_flag = True
+            
+            if inside_flag == True:
+                mask[1:-1,1:-1] = 1-mask[1:-1,1:-1]
+            
+            self.contour_mask_list.append((mask[:], close))
+            if close:
+                self.mask = self.mask + mask
+            return mask
 
     def cost_map_generation(self):
         self.update_seed_node(self.seed)
@@ -117,7 +164,7 @@ class IntelligentScissor():
                 continue
             prev_node_obj.state = self.EXPAND
             self.node_dict[prev_node_key] = prev_node_obj
-            for n_pose in prev_node_obj.neighbours:
+            for k, n_pose in enumerate(prev_node_obj.neighbours):
                 n_pose_node = self.node_dict[n_pose[0]]
                 n_pose_state = n_pose_node.state
                 if n_pose_state==self.EXPAND:
@@ -127,14 +174,14 @@ class IntelligentScissor():
                     heappush(self.pq, (new_cost, n_pose[0]))
                     n_pose_node.state = self.ACTIVE
                     n_pose_node.cost = new_cost
-                    n_pose_node.prev_node = prev_node_key
+                    n_pose_node.prev_node = (prev_node_key, k)
                     self.node_dict[n_pose[0]]=n_pose_node
                 elif n_pose_state==self.ACTIVE:
                     new_cost = prev_cost+n_pose[1]
                     old_cost = self.node_dict[n_pose[0]].cost
                     if old_cost>new_cost:
                         heappush(self.pq, (new_cost, n_pose[0]))
-                        n_pose_node.prev_node = prev_node_key
+                        n_pose_node.prev_node = (prev_node_key, k)
                         n_pose_node.cost = new_cost
                         self.node_dict[n_pose[0]]=n_pose_node
 
@@ -167,7 +214,11 @@ class IntelligentScissor():
         for i in range(1,self.height-1):
             for j in range(1,self.width-1):
                 self.node_dict[self.coordinate2key((i,j))]=\
-                        PQ_Node(None, self.INITIAL, self.get_neighbor_node_keys((i,j), self.link_cost[i][j]), 0)
+                        PQ_Node(None, 
+                                self.INITIAL, 
+                                self.get_neighbor_node_keys((i,j), 
+                                    self.link_cost[i][j]), 
+                                0)
         self.margin_node_update()
 
     def update_seed(self, seed):
@@ -203,7 +254,7 @@ class IntelligentScissor():
                 node_item.state = self.BORDER
                 self.node_dict[self.coordinate2key((node[1],node[0]))]=node_item
 
-    def generate_mask(self, path_point):
+    def generate_mask(self, path_point, close=True):
         mask = np.zeros((self.height, self.width),dtype=np.int32)
         dq = deque()
         inside_flag = False
@@ -233,13 +284,24 @@ class IntelligentScissor():
                     self.node_dict[n_pose[0]] = n_pose_node
                 elif ((inside_flag == False) and (n_pose_state==self.EXPAND)):
                     inside_flag = True
-                    continue
-                else:
-                    continue
+        
         if inside_flag == True:
             mask[1:-1,1:-1] = 1-mask[1:-1,1:-1]
-        self.mask = mask[:]
+        
+        self.contour_mask_list.append((mask[:], close))
+        if close:
+            self.mask = self.mask + mask
         return mask
+
+    def delete_mask(self, idx_):
+        if self.contour_mask_list[idx_][1]:
+            self.mask = self.mask - self.contour_mask_list[idx_][0]
+        del self.contour_mask_list[idx_]
+
+    def coordinate_mask(self, (x,y)):
+        for i, item in enumerate(self.contour_mask_list):
+            if item[0][y][x] == 1:
+                return i, item 
 
 class PQ_Node():
     def __init__(self, prev_node, state, neighbours, cost):
