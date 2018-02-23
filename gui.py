@@ -16,6 +16,7 @@ PROCESS_COUNTER_STATE=3
 FINISH_STATE=4
 FINISH_CLOSE_STATE=5
 CHOOSE_STATE=6
+CONTOUR_DELETE=7
 
 gloabl_state = -1
 
@@ -158,7 +159,7 @@ class GUI():
         #canvas.bind('<B1-Motion>', add_line)
         #canvas.bind('<B1-ButtonRelease>', done_stroke)
 
-        #TODO palette, should do with color chooser dialog
+        # TODO palette, should do with color chooser dialog
         canvas_id = self.canvas.create_rectangle((10, 10, 30, 30), fill='red', tags=('palette','palettered', 'paletteSelected'))
         self.canvas.tag_bind(canvas_id, '<Button-1>', lambda x: set_color('red', self.canvas))
         canvas_id = self.canvas.create_rectangle((10, 35, 30, 55), fill='green', tags=('palette','palettegreen'))
@@ -193,6 +194,7 @@ class GUI():
         #global lastx, lasty, startx, starty, start_flag, xy_stack, finish_flag
         #start_flag = True
         #finish_flag = False
+        print (self.state)
         if self.state == LOAD_IMAGE_STATE:
             self.contour_stack.clear()
             self.history_contour.clear()
@@ -223,6 +225,7 @@ class GUI():
             self.canvas_path_stack.append(self.canvas_path[:])
             path = self.obj.get_path((int(self.startx),int(self.starty)))
             self.history_paths.append(path[:])
+            self.history_contour.append(self.history_paths[:])
 
             #path_label.configure(text = '{0}th canvas_path: {1}'.format(i,canvas_path))
             self.path_label.configure(text = 'closing path: {1}'.format(i,path))
@@ -233,7 +236,7 @@ class GUI():
             self.canvas_path.clear()
             self.xy_stack.append([self.startx,self.starty,self.canvas_id])
             self.stack_label.configure(text=self.xy_stack)
-            #TODO uncomment to integrate
+            # TODO uncomment to integrate
             #self.obj.generate_mask(history_paths)
             self.state=FINISH_CLOSE_STATE
         else:
@@ -270,7 +273,6 @@ class GUI():
             #history_paths_label.configure(text='path_stack after {0}: {1}'.format(i, canvas_path_stack))
             self.canvas_path_stack.append(self.canvas_path[:])
             self.contour_stack.append(self.canvas_path_stack[:])
-            self.history_contour.append(self.history_paths)
             #canvas_path_stack.append('test {0}'.format(i))
             #history_paths_label.configure(text='path_stack {0}: {1}'.format(i, canvas_path_stack[0]))
             #self.history_paths_label.configure(text='history_paths after {0}th append: {1}'.format(i, history_paths))
@@ -285,6 +287,10 @@ class GUI():
             self.stack_label.configure(text=xy_stack)
             self.state = PROCESS_COUNTER_STATE
             
+        elif self.state==CHOOSE_STATE:
+            #self.state=CHOOSE_STATE
+            self.state=CONTOUR_DELETE
+            # TODO choose the seleected path
         self.debug_label.configure(text='start_flag:{0}'.format(start_flag))
         self.debug2_label.configure(text='line_id:{0}'.format(canvas_id))
         self.debug3_label.configure(text='lastx:{0} lasty:{1}'.format(lastx,lasty))
@@ -330,8 +336,8 @@ class GUI():
                 self.state=self.PREPARE_STATE
 
 
-        elif self.state==CHOOSE_STATE:
-            # TODO
+        elif self.state==CONTOUR_DELETE:
+            #  TODO delete the selected path
             #pass
             #while len(canvas_path_stack)>0:
                 #path = canvas_path_stack.pop()
@@ -367,8 +373,10 @@ class GUI():
             #path_label.configure(text = 'current canvas_path: {1}'.format(i,canvas_path))
             #path_label.configure(text = 'current path: {1}'.format(i,path))
         elif self.state==FINISH_STATE or self.state==FINISH_CLOSE_STATE or self.state==PREPARE_STATE:
-            self.state=CHOOSE_STATE
-            # TODO
+            #self.state=CHOOSE_STATE
+            # TODO highlight the chosen contour
+            # and update to hightlight CHOOSE_STATE
+            pass 
 
     def set_color(self, newcolor):
         self.color = newcolor

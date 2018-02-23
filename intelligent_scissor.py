@@ -210,13 +210,14 @@ class IntelligentScissor():
         inside_flag = False
         self.update_node_dict()
         self.update_path_dict(path_point)
-        seed_row = np.random.randint(1, self.height-1)
-        seed_column = np.random.randint(1, self.width-1)
-        seed_key = self.coordinate2key((seed_row, seed_column))
-        while self.node_dict[seed_key].state==self.BORDER:
-            seed_row = np.random.randint(1, self.height-1)
-            seed_column = np.random.randint(1, self.width-1)
-            seed_key = self.coordinate2key((seed_row, seed_column))
+        #seed_row = np.random.randint(1, self.height-1)
+        #seed_column = np.random.randint(1, self.width-1)
+        #seed_key = self.coordinate2key((seed_row, seed_column))
+        #while self.node_dict[seed_key].state==self.BORDER:
+            #seed_row = np.random.randint(1, self.height-1)
+            #seed_column = np.random.randint(1, self.width-1)
+            #seed_key = self.coordinate2key((seed_row, seed_column))
+        seed_key = self.coordinate2key((1,1))
         dq.append(seed_key)
         while len(dq) > 0:
             root_key = dq.popleft()
