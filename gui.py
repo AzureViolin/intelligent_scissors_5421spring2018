@@ -60,6 +60,12 @@ class GUI():
         self.canvas_id = 0
         #self.canvas = canvas
 
+
+        root = Tk()
+        root.title('Intelligent Scissors by Lei & Hao HKUST COMP5421 Spring 2018')
+        root.grid_columnconfigure(0, weight=1)
+        root.grid_rowconfigure(0, weight=1)
+
         #frame
         self.mainframe = ttk.Frame(root,padding='20', borderwidth = '8')
         self.mainframe['relief'] = 'ridge'
@@ -87,6 +93,77 @@ class GUI():
         v['command'] = self.canvas.yview
         h.grid(column=0, row=4, columnspan = 4, sticky=(W,E))
         v.grid(column=4, row=0, rowspan = 4,  sticky=(N,S))
+
+
+        menubar = Menu(root)
+        filemenu = Menu(menubar, tearoff = 0)
+        filemenu.add_command(label="Open Image", command = self.open_image)
+        #filemenu.add_separator()
+        #filemenu.add_command(label="Save Contour", command = save_contour)
+        #filemenu.add_command(label="Save Mask", command = save_mask)
+        #filemenu.add_separator()
+        #filemenu.add_command(label="Exit", command = root.quit)
+        menubar.add_cascade(label="File", menu=filemenu)
+
+        toolmenu = Menu(menubar, tearoff = 0)
+        toolmenu.add_command(label = "Scissor", command = create_scissor_window)
+        menubar.add_cascade(label="Tool", menu=toolmenu)
+
+        root.configure(menu = menubar)
+
+
+
+        #button
+        #button_open_image = ttk.Button(mainframe, text = 'open image', command = open_image).grid(column=5,row=0, sticky=(E,N))
+
+        #size grip
+        ttk.Sizegrip(root).grid(column=1, row=1, sticky=(S,E))
+
+        #show cursor coornidate
+        cursor_label =ttk.Label(self.mainframe, text='x:0,y:0')
+        cursor_label.grid(column = 3, row = 5, sticky = (E,N))
+        self.canvas.bind('<Leave>', lambda e: cursor_label.configure(text='cursor outside canvas'))
+
+        #show other debug info
+        debug_label = ttk.Label(self.mainframe, text='<debug info>')
+        debug_label.grid(column = 0, row = 5, sticky = (W,N))
+        debug2_label = ttk.Label(self.mainframe, text='<debug2 info>')
+        debug2_label.grid(column = 1, row = 5, sticky = (W,N))
+        debug3_label = ttk.Label(self.mainframe, text='<debug3 info>')
+        debug3_label.grid(column = 2, row = 5, sticky = (W,N))
+
+
+        stack_label = ttk.Label(self.mainframe, text='<stack info>', wraplength = wrap_length, justify = 'left')
+        stack_label.grid(column = 0, row = 6, columnspan = 4, sticky = (W,N))
+
+        path_label = ttk.Label(self.mainframe, text='<path info>', wraplength = wrap_length, justify = 'left')
+        path_label.grid(column = 0, row = 7, columnspan = 4, sticky = (W,N))
+
+        history_paths_label = ttk.Label(self.mainframe, text='<path stack info>', wraplength = wrap_length, justify = 'left')
+        history_paths_label.grid(column = 0, row = 8, columnspan = 4, sticky = (W,N))
+
+        #Main function binding
+        #self.canvas.bind('<Button-1>', click_xy)
+        #self.canvas.bind('<Control-Button-1>', start)
+        #root.bind('<Return>', finish)
+        #root.bind('<BackSpace>', delete_path)
+        #root.bind('<Control-Return>', close_contour_finish)
+        #self.canvas.bind('<Motion>', get_xy)
+        #canvas.bind('<B1-Motion>', add_line)
+        #canvas.bind('<B1-ButtonRelease>', done_stroke)
+
+        #TODO palette, should do with color chooser dialog
+        canvas_id = self.canvas.create_rectangle((10, 10, 30, 30), fill='red', tags=('palette','palettered', 'paletteSelected'))
+        self.canvas.tag_bind(canvas_id, '<Button-1>', lambda x: set_color('red', self.canvas))
+        canvas_id = self.canvas.create_rectangle((10, 35, 30, 55), fill='green', tags=('palette','palettegreen'))
+        self.canvas.tag_bind(canvas_id, '<Button-1>', lambda x: set_color('green',self.canvas))
+        set_color('green', self.canvas)
+        self.canvas.itemconfigure('palette', width=5)
+
+        #self.canvas.pack()
+        #self.mainframe.pack()
+        root.mainloop()
+
 
     def open_image(self):
         #default = False
@@ -326,82 +403,10 @@ def set_color(newcolor, canvas):
 def create_scissor_window():
     scissor_window = tkinter.Toplevel(root)
 
-root = Tk()
-root.title('Intelligent Scissors by Lei & Hao HKUST COMP5421 Spring 2018')
-root.grid_columnconfigure(0, weight=1)
-root.grid_rowconfigure(0, weight=1)
+if __name__=="__main__":
 
 
 
-#canvas = gui_obj.canvas
-gui_obj = GUI()
-#menu
-menubar = Menu(root)
-filemenu = Menu(menubar, tearoff = 0)
-filemenu.add_command(label="Open Image", command = gui_obj.open_image)
-#filemenu.add_separator()
-#filemenu.add_command(label="Save Contour", command = save_contour)
-#filemenu.add_command(label="Save Mask", command = save_mask)
-#filemenu.add_separator()
-#filemenu.add_command(label="Exit", command = root.quit)
-menubar.add_cascade(label="File", menu=filemenu)
-
-toolmenu = Menu(menubar, tearoff = 0)
-toolmenu.add_command(label = "Scissor", command = create_scissor_window)
-menubar.add_cascade(label="Tool", menu=toolmenu)
-
-root.configure(menu = menubar)
-
-
-
-#button
-#button_open_image = ttk.Button(mainframe, text = 'open image', command = open_image).grid(column=5,row=0, sticky=(E,N))
-
-#size grip
-ttk.Sizegrip(root).grid(column=1, row=1, sticky=(S,E))
-
-#show cursor coornidate
-cursor_label =ttk.Label(gui_obj.mainframe, text='x:0,y:0')
-cursor_label.grid(column = 3, row = 5, sticky = (E,N))
-gui_obj.canvas.bind('<Leave>', lambda e: cursor_label.configure(text='cursor outside canvas'))
-
-#show other debug info
-debug_label = ttk.Label(gui_obj.mainframe, text='<debug info>')
-debug_label.grid(column = 0, row = 5, sticky = (W,N))
-debug2_label = ttk.Label(gui_obj.mainframe, text='<debug2 info>')
-debug2_label.grid(column = 1, row = 5, sticky = (W,N))
-debug3_label = ttk.Label(gui_obj.mainframe, text='<debug3 info>')
-debug3_label.grid(column = 2, row = 5, sticky = (W,N))
-
-
-stack_label = ttk.Label(gui_obj.mainframe, text='<stack info>', wraplength = wrap_length, justify = 'left')
-stack_label.grid(column = 0, row = 6, columnspan = 4, sticky = (W,N))
-
-path_label = ttk.Label(gui_obj.mainframe, text='<path info>', wraplength = wrap_length, justify = 'left')
-path_label.grid(column = 0, row = 7, columnspan = 4, sticky = (W,N))
-
-history_paths_label = ttk.Label(gui_obj.mainframe, text='<path stack info>', wraplength = wrap_length, justify = 'left')
-history_paths_label.grid(column = 0, row = 8, columnspan = 4, sticky = (W,N))
-
-#Main function binding
-#gui_obj.canvas.bind('<Button-1>', click_xy)
-#gui_obj.canvas.bind('<Control-Button-1>', start)
-#root.bind('<Return>', finish)
-#root.bind('<BackSpace>', delete_path)
-#root.bind('<Control-Return>', close_contour_finish)
-#gui_obj.canvas.bind('<Motion>', get_xy)
-#canvas.bind('<B1-Motion>', add_line)
-#canvas.bind('<B1-ButtonRelease>', done_stroke)
-
-#TODO palette, should do with color chooser dialog
-canvas_id = gui_obj.canvas.create_rectangle((10, 10, 30, 30), fill='red', tags=('palette','palettered', 'paletteSelected'))
-gui_obj.canvas.tag_bind(canvas_id, '<Button-1>', lambda x: set_color('red', gui_obj.canvas))
-canvas_id = gui_obj.canvas.create_rectangle((10, 35, 30, 55), fill='green', tags=('palette','palettegreen'))
-gui_obj.canvas.tag_bind(canvas_id, '<Button-1>', lambda x: set_color('green',gui_obj.canvas))
-set_color('green', gui_obj.canvas)
-gui_obj.canvas.itemconfigure('palette', width=5)
-
-#gui_obj.canvas.pack()
-#gui_obj.mainframe.pack()
-root.mainloop()
-
+    #canvas = gui_obj.canvas
+    gui_obj = GUI()
+    #menu
