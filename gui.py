@@ -11,6 +11,7 @@ import numpy as np
 import time
 from functools import partial
 import cv2
+import os
 
 #TODO
 #Zoom in Zoom out
@@ -23,6 +24,9 @@ highlight_id = []
 
 debug_setting = True
 
+path_tree_file_name = './output/path_tree.png'
+pixel_nodes_file_name = './output/pixel_nodes.png'
+cost_graph_file_name = './output/cost_graph.png'
 #Global variables shared between files
 #cursor_x, cursor_y holds current cursor coordinates
 cursor_x, cursor_y = 0, 0
@@ -56,6 +60,8 @@ brush_window_exist = False
 help_window_exist = False
 about_window_exist = False
 
+#scissor_mode = tk.StringVar()
+#scissor_mode.set('image_with_contour')
 #obj = IntelligentScissor(cvimg, (int(seed_x),int(seed_y)))
 #obj.link_calculation()
 #start_time = time.time()
@@ -189,23 +195,12 @@ def click_xy(event):
         seed_to_graph(x,y)
         last_x, last_y = x, y
         point_stack.append([x,y,canvas_id])
+        if os.path.isfile(path_tree_file_name):
+            os.remove(path_tree_file_name)
     else:
         print('Nothing will happen even if you keep clicking mouse, since we are not in live wire mode yet.')
 
     show_debug(show = debug_setting)
-#    elif len(history_contour)>0):
-#        set_color('green')
-#        highlight_id = []
-#        mask_, contour_idx = obj.generate_mask(history_contour,
-#                int(canvas.canvasx(event.x)),
-#                int(canvas.canvasy(event.y)),
-#                False)
-#        print ("contour_hight_idx:", contour_idx)
-#        # TODO highlight the chosen contour
-#        # and update to hightlight CHOOSE_STATE
-#        # TODO cancel highlight the chosen contour
-#        contour_idx=None
-#        print ("Cancel chosen contour")
 
 def delete_path(event):
     global canvas_id, last_x, last_y, scissor_flag, canvas_path, canvas_path_stack, finish_flag
@@ -268,7 +263,8 @@ def get_xy(event):
             #remove last path in canvas
             canvas.delete(canvas_path)
             #draw new path on canvas
-            draw_path(cursor_x,cursor_y, line_width = focus_width)
+            if scissor_mode.get() == 'image_with_contour' or scissor_mode.get() == 'minimum_path':
+                draw_path(cursor_x,cursor_y, line_width = focus_width)
             #in_path = obj.get_path((int(cursor_x),int(cursor_y)))
             #min_path_label.configure(text = 'current canvas_path: {1}'.format(i,canvas_path))
         else:
@@ -388,31 +384,56 @@ def show_image_only(event):
     global image_id
     canvas.delete('debug_image')
     image_id = canvas.create_image(0,0, image=operand_image, anchor=NW)
-    img_width, img_height = pil_img.size
     #canvas.configure(width=operand_image.width(), height=operand_image.height())
-    input('image should change now, enter to continue')
+    #input('image should change now, enter to continue')
 
 def show_image_with_contour(event):
-    pass
+    show_image_only(event)
 
 def show_pixel_nodes(event):
-    pass
+    if scissor_mode.get() != 'pixel_nodes':
+        if os.path.isfile(pixel_nodes_file_name):
+            pass
+        else:
+            print('......generating pixel_nodes......')
+            start_time = time.time()
+            obj.link_calculation()
+            print('pixel_nodes generation time:', time.time() - start_time)
+            pixel_nodes_img = PILImage.fromarray((obj.pixel_node*255).astype(np.uint8))
+            pixel_nodes_img.save(pixel_nodes_file_name)
+        open_image_by_file(pixel_nodes_file_name, image_tag = 'debug_image')
 
 def show_cost_graph(event):
-    pass
+    if scissor_mode.get() != 'cost_graph':
+        if os.path.isfile(cost_graph_file_name):
+            pass
+        else:
+            print('......generating cost_graph......')
+            start_time = time.time()
+            obj.link_calculation()
+            print('cost_graph generation time:', time.time() - start_time)
+            cost_graph_img = PILImage.fromarray((obj.pixel_node*255).astype(np.uint8))
+            cost_graph_img.save(cost_graph_file_name)
+        open_image_by_file(cost_graph_file_name, image_tag = 'debug_image')
 
 def show_path_tree(event):
-    start_time = time.time()
-    obj.path_tree_generation()
-    print('path_tree generation time:', time.time() - start_time)
-    save_file_name = './output/path_tree.png'
-    #path_tree_img = PILImage.fromarray((obj.path_tree*255).astype(np.uint8))
-    path_tree_img = PILImage.fromarray((obj.path_tree))
-    path_tree_img.save(save_file_name)
-    open_image_by_file(save_file_name, image_tag = 'debug_image')
+    if scissor_mode.get() != 'minimum_path' and scissor_mode.get() != 'path_tree':
+        if os.path.isfile(path_tree_file_name):
+            pass
+        else:
+            print('......generating path tree......')
+            start_time = time.time()
+            obj.path_tree_generation()
+            print('path_tree generation time:', time.time() - start_time)
+            #path_tree_img = PILImage.fromarray((obj.path_tree*255).astype(np.uint8))
+            path_tree_img = PILImage.fromarray((obj.path_tree))
+            path_tree_img.save(path_tree_file_name)
+
+        open_image_by_file(path_tree_file_name, image_tag = 'debug_image')
 
 def show_minimum_path(event):
-    pass
+    if scissor_mode.get() != 'minimum_path' and scissor_mode.get() != 'path_tree':
+        show_path_tree(event)
 
 def create_help_window():
     global help_window_exist
@@ -472,6 +493,7 @@ def create_scissor_window():
         scissor_range = ttk.Checkbutton(scissor_frame, text = 'Brush Selection', variable = brush_selection, onvalue = True, offvalue = False)
 
         scissor_mode = tk.StringVar()
+        scissor_mode.set('image_with_contour')
         image_only = ttk.Radiobutton(scissor_frame, text = 'Image Only', variable = scissor_mode, value = 'image_only')
         image_with_contour = ttk.Radiobutton(scissor_frame, text = 'Image with Contour', variable = scissor_mode, value = 'image_with_contour')
         pixel_nodes = ttk.Radiobutton(scissor_frame, text = 'Pixel Nodes', variable = scissor_mode, value = 'pixel_nodes')
@@ -634,5 +656,20 @@ set_color('green')
 canvas.itemconfigure('palette', width=5)
 
 open_image()
+create_scissor_window()
+close_scissor_window()
+scissor_mode.set('image_with_contour')
+
+def close_root():
+    print('close root window')
+    if os.path.isfile(path_tree_file_name):
+        os.remove(path_tree_file_name)
+    if os.path.isfile(pixel_nodes_file_name):
+        os.remove(pixel_nodes_file_name)
+    if os.path.isfile(cost_graph_file_name):
+        os.remove(cost_graph_file_name)
+    root.destroy()
+
+root.protocol('WM_DELETE_WINDOW', close_root)
 root.mainloop()
 
