@@ -1,8 +1,11 @@
-import tkinter
-from tkinter import *
+import tkinter as tk
+#from tkinter import *
 from tkinter import ttk
+from tkinter import NW
 from tkinter import filedialog
-from PIL import ImageTk, Image, ImageDraw
+from PIL import ImageTk as PILImageTk
+from PIL import Image as PILImage
+from PIL import ImageDraw as PILImageDraw
 from intelligent_scissor import IntelligentScissor
 import numpy as np
 import time
@@ -60,21 +63,59 @@ about_window_exist = False
 #obj.generate_all_node_dict()
 #print('node dict generation time:', time.time() - start_time)
 
-def open_image():
-    global canvas, image, cvimg, scissor_flag,  obj, draw_image
+def open_image_by_file(file_name):
+    global canvas, image, cvimg, scissor_flag,  obj, draw_image, image_id
+    #clear any information about previous image
+    #TODO check if there's anything else left to be cleaned up
     scissor_flag = False
-    #TODO get current path
-    file_name = filedialog.askopenfilename(initialdir = './images')
-    pil_img = Image.open(file_name)
-    #image = ImageTk.PhotoImage(file=file_name)
-    image = ImageTk.PhotoImage(pil_img)
-    canvas.create_image(0,0, image=image, anchor=NW)
-    draw_image = ImageDraw.Draw(pil_img)
-    obj = IntelligentScissor(np.array(pil_img))
+    canvas.delete('all')
     canvas_contour_stack.clear()
     history_contour.clear()
+    #TODO get current path
+    #file_name = filedialog.askopenfilename(initialdir = './images')
+    #open image with pillow and load into PILImageTk
+    pil_img = PILImage.open(file_name)
+    image = PILImageTk.PhotoImage(pil_img)
+    #alternatively, open image directly with PILImageTk
+    #image = PILImageTk.PhotoImage(file=file_name)
+    image_id = canvas.create_image(0,0, image=image, anchor=NW)
+
+    #for draw contour with image
+    draw_image = PILImageDraw.Draw(pil_img)
+
+    obj = IntelligentScissor(np.array(pil_img))
+
+    #get picture size and resize canvas window
     img_width, img_height = pil_img.size
     canvas.configure(width=img_width, height=img_height)
+
+
+def open_image():
+    global canvas, image, cvimg, scissor_flag,  obj, draw_image, image_id
+    #clear any information about previous image
+    #TODO check if there's anything else left to be cleaned up
+    scissor_flag = False
+    canvas.delete('all')
+    canvas_contour_stack.clear()
+    history_contour.clear()
+    #TODO get current path
+    file_name = filedialog.askopenfilename(initialdir = './images')
+    #open image with pillow and load into PILImageTk
+    pil_img = PILImage.open(file_name)
+    image = PILImageTk.PhotoImage(pil_img)
+    #alternatively, open image directly with PILImageTk
+    #image = PILImageTk.PhotoImage(file=file_name)
+    image_id = canvas.create_image(0,0, image=image, anchor=NW)
+
+    #for draw contour with image
+    draw_image = PILImageDraw.Draw(pil_img)
+
+    obj = IntelligentScissor(np.array(pil_img))
+
+    #get picture size and resize canvas window
+    img_width, img_height = pil_img.size
+    canvas.configure(width=img_width, height=img_height)
+
 
 def seed_to_graph(seed_x,seed_y):
     #global obj
@@ -332,49 +373,52 @@ def set_color(newcolor):
     canvas.itemconfigure('paletteSelected', outline='#999999')
 
 def save_contour():
-    if scissor_flag==False: 
+    if scissor_flag==False:
         file_name = filedialog.asksaveasfilename(initialdir = './output',
                 filetypes = (("png files","*.png"), ("jpeg files","*.jpg")))
         canvas.postscript(file=file_name, colormode='color')
     #return
 
 def save_mask():
-    global canvas
     if scissor_flag==False:
-        file_name = filedialog.asksaveasfilename(initialdir = './output',
+        save_file_name = filedialog.asksaveasfilename(initialdir = './output',
                 filetypes = (("png files","*.png"), ("jpeg files","*.jpg")))
-        mask_image = Image.fromarray((obj.mask*255).astype(np.uint8))
-        mask_image.save(file_name)
-        tk_image = ImageTk.PhotoImage(mask_image)
-        print('================create image===============')
-        print (mask_image)
-        #canvas.create_image(0,0, image=tk_image, anchor=NW)
-        pil_img1 = Image.open(file_name)
-        print('================load pil image===============')
-        print (pil_img1)
-        image1 = ImageTk.PhotoImage(pil_img1)
-        canvas.create_image(0,0, image=image1, anchor=NW)
+        mask_image = PILImage.fromarray((obj.mask*255).astype(np.uint8))
+        mask_image.save(save_file_name)
+        #input('mask saved, press enter to open mask')
+        #opened_mask = PILImage.open(save_file_name)
+        #print('================load pil image===============')
+        #print (pil_img1)
+        #mask_image_tk = PILImageTk.PhotoImage(opened_mask)
+        #mask_image_id = canvas.create_image(0,0, image=mask_image_tk, anchor=NW)
+        #open_image_by_file(file_name=save_file_name)
+        #print('mask image id : {0}'.format(mask_image_id))
+        #canvas.itemconfigure(image_id, image=mask_image_tk)
+        #input('canvas should be updated by now, press enter to continue')
 
-
-    #return
+def show_path_tree():
+    save_file_name = './output/path_tree.png'
+    path_tree_img = PILImage.fromarray((obj.path_tree*255).astype(np.uint8))
+    path_tree_img.save(save_file_name)
+    open_image_by_file(save_file_name)
 
 def create_help_window():
     global help_window_exist
     if help_window_exist == False:
         help_window_exist = True
-        help_window = tkinter.Toplevel(root)
+        help_window = tk.Toplevel(root)
         help_window.title('Help')
         help_frame = ttk.Frame(help_window,padding='5', borderwidth = '8')
         help_frame.grid(column = 0, row = 0)
         #TODO better way to show help text
-        help_text = tkinter.Text(help_window)
+        help_text = tk.Text(help_window)
         help_text.grid(column = 0, row = 0)
 
 def create_about_window():
     global about_window_exist
     if about_window_exist == False:
         about_window_exist = True
-        about_window = tkinter.Toplevel(root)
+        about_window = tk.Toplevel(root)
         about_window.title('About this software')
         about_frame = ttk.Frame(about_window,padding='5', borderwidth = '8')
         about_frame.grid(column = 0, row = 0)
@@ -385,21 +429,21 @@ def create_brush_window():
     global brush_window_exist
     if brush_window_exist == False:
         brush_window_exist = True
-        brush_window = tkinter.Toplevel(root)
+        brush_window = tk.Toplevel(root)
         brush_window.title('Brush Config')
 
 def create_scissor_window():
-    global scissor_window_exist, scissor_mode
+    global scissor_window_exist, scissor_mode, scissor_window
     if scissor_window_exist == False:
         scissor_window_exist = True
         #window
-        scissor_window = tkinter.Toplevel(root)
+        scissor_window = tk.Toplevel(root)
         scissor_window.title('Scissor Config')
         scissor_window.grid_columnconfigure(0,weight = 1)
         scissor_window.grid_rowconfigure(0, weight = 1)
         #frame
         scissor_frame = ttk.Frame(scissor_window,padding='5', borderwidth = '8')
-        scissor_frame.grid(column = 0, row = 0, sticky = (N,W,E,S))
+        scissor_frame.grid(column = 0, row = 0, sticky = (tk.N,tk.W,tk.E,tk.S))
         #contents
         scissor_range_label = ttk.Label(scissor_frame, text='Scissor Range')
         work_mode_label = ttk.Label(scissor_frame, text='Work Mode')
@@ -407,14 +451,15 @@ def create_scissor_window():
         scissor_debug_label = ttk.Label(scissor_frame, text='<debug info>')
         scissor_debug2_label = ttk.Label(scissor_frame, text='<debug info>')
 
-        #TODO show separators
-        separator1 = ttk.Separator(scissor_frame, orient=HORIZONTAL)
-        separator2 = ttk.Separator(scissor_frame, orient=HORIZONTAL)
 
-        brush_selection = BooleanVar()
+        #TODO show separators
+        separator1 = ttk.Separator(scissor_frame, orient=tk.HORIZONTAL)
+        separator2 = ttk.Separator(scissor_frame, orient=tk.HORIZONTAL)
+
+        brush_selection = tk.BooleanVar()
         scissor_range = ttk.Checkbutton(scissor_frame, text = 'Brush Selection', variable = brush_selection, onvalue = True, offvalue = False)
 
-        scissor_mode = StringVar()
+        scissor_mode = tk.StringVar()
         image_only = ttk.Radiobutton(scissor_frame, text = 'Image Only', variable = scissor_mode, value = 'image_only')
         image_with_contour = ttk.Radiobutton(scissor_frame, text = 'Image with Contour', variable = scissor_mode, value = 'image_with_contour')
         pixel_nodes = ttk.Radiobutton(scissor_frame, text = 'Pixel Nodes', variable = scissor_mode, value = 'pixel_nodes')
@@ -423,37 +468,47 @@ def create_scissor_window():
         minimum_path = ttk.Radiobutton(scissor_frame, text = 'Minimum Path', variable = scissor_mode, value = 'minimum_path')
         gradient_map = ttk.Radiobutton(scissor_frame, text = 'Gradient Map', variable = scissor_mode, value = 'gradient_map')
 
-        scissor_range_label.grid(column = 0, row = 0, sticky = (W,N))
-        scissor_range.grid(column = 0, row = 1, sticky = (W,N))
-        separator1.grid(column = 0, row = 4, sticky = W)
+        scissor_range_label.grid(column = 0, row = 0, sticky = (tk.W,tk.N))
+        scissor_range.grid(column = 0, row = 1, sticky = (tk.W,tk.N))
+        separator1.grid(column = 0, row = 4, sticky = tk.W)
 
-        work_mode_label.grid(column = 0, row = 5, sticky = (W,N))
-        image_only.grid(column = 0, row = 6, sticky = W)
-        image_with_contour.grid(column = 1, row = 6, sticky = W)
+        work_mode_label.grid(column = 0, row = 5, sticky = (tk.W,tk.N))
+        image_only.grid(column = 0, row = 6, sticky = tk.W)
+        image_with_contour.grid(column = 1, row = 6, sticky = tk.W)
 
-        debug_mode_label.grid(column = 0, row = 7, sticky = (W,N))
-        pixel_nodes.grid(column = 0, row = 8, sticky = W)
-        cost_graph.grid(column = 1, row = 8, sticky = W)
-        path_tree.grid(column = 0, row = 9, sticky = W)
-        minimum_path.grid(column = 1, row = 9, sticky = W)
-        gradient_map.grid(column = 0, row = 10, sticky = W)
+        debug_mode_label.grid(column = 0, row = 7, sticky = (tk.W,tk.N))
+        pixel_nodes.grid(column = 0, row = 8, sticky = tk.W)
+        cost_graph.grid(column = 1, row = 8, sticky = tk.W)
+        path_tree.grid(column = 0, row = 9, sticky = tk.W)
+        minimum_path.grid(column = 1, row = 9, sticky = tk.W)
+        gradient_map.grid(column = 0, row = 10, sticky = tk.W)
 
-        separator2.grid(column = 0, row = 13, sticky = W)
-        scissor_debug_label.grid(column = 0, row = 14, sticky = (W,N))
-        scissor_debug2_label.grid(column = 0, row = 15, sticky = (W,N))
+        separator2.grid(column = 0, row = 13, sticky = tk.W)
+        scissor_debug_label.grid(column = 0, row = 14, sticky = (tk.W,tk.N))
+        scissor_debug2_label.grid(column = 0, row = 15, sticky = (tk.W,tk.N))
 
         #binding
         scissor_window.bind('<1>',lambda e : scissor_debug_label.configure(text = scissor_mode.get()))
         scissor_window.bind('<1>',lambda e : scissor_debug2_label.configure(text = brush_selection.get()))
+        path_tree.bind('<1>',show_path_tree)
 
-root = Tk()
+        scissor_window.protocol('WM_DELETE_WINDOW', close_scissor_window)
+
+def close_scissor_window():
+    global scissor_window_exist
+    print('close scissor window')
+    scissor_window_exist = False
+    scissor_window.destroy()
+
+
+root = tk.Tk()
 root.title('Intelligent Scissors by Lei & Hao HKUST COMP5421 Spring 2018')
 root.grid_columnconfigure(0, weight=1)
 root.grid_rowconfigure(0, weight=1)
 
 #menu
-menubar = Menu(root)
-file_menu = Menu(menubar, tearoff = 0)
+menubar = tk.Menu(root)
+file_menu = tk.Menu(menubar, tearoff = 0)
 file_menu.add_command(label="Open Image", command = open_image)
 file_menu.add_separator()
 file_menu.add_command(label="Save Contour", command = save_contour)
@@ -462,12 +517,12 @@ file_menu.add_separator()
 file_menu.add_command(label="Exit", command = root.quit)
 menubar.add_cascade(label="File", menu=file_menu)
 
-tools_menu = Menu(menubar, tearoff = 0)
+tools_menu = tk.Menu(menubar, tearoff = 0)
 tools_menu.add_command(label = "Scissor", command = create_scissor_window)
 tools_menu.add_command(label = "Brush", command = create_brush_window)
 menubar.add_cascade(label="Tools", menu=tools_menu)
 
-help_menu = Menu(menubar, tearoff = 0)
+help_menu = tk.Menu(menubar, tearoff = 0)
 help_menu.add_command(label = "Help", command = create_help_window)
 help_menu.add_command(label = "About", command = create_about_window)
 menubar.add_cascade(label="Help", menu=help_menu)
@@ -477,15 +532,15 @@ root.configure(menu = menubar)
 #frame
 mainframe = ttk.Frame(root,padding='3', borderwidth = '8')
 #mainframe['relief'] = 'ridge'
-mainframe.grid(column=0, row=0, sticky=(N,W,E,S))
+mainframe.grid(column=0, row=0, sticky=(tk.N,tk.W,tk.E,tk.S))
 
 #define scroll bar
-h = ttk.Scrollbar(mainframe, orient=HORIZONTAL)
-v = ttk.Scrollbar(mainframe, orient=VERTICAL)
+h = ttk.Scrollbar(mainframe, orient=tk.HORIZONTAL)
+v = ttk.Scrollbar(mainframe, orient=tk.VERTICAL)
 
 #canvas
-canvas = Canvas(mainframe, width=640, height=480, bg='white',scrollregion=(0, 0, 1920, 1080), yscrollcommand=v.set,xscrollcommand=h.set)
-canvas.grid(column=0, row=0, columnspan = 4, rowspan = 4, sticky=(N,W,E,S))
+canvas = tk.Canvas(mainframe, width=640, height=480, bg='white',scrollregion=(0, 0, 1920, 1080), yscrollcommand=v.set,xscrollcommand=h.set)
+canvas.grid(column=0, row=0, columnspan = 4, rowspan = 4, sticky=(tk.N,tk.W,tk.E,tk.S))
 mainframe.columnconfigure(0,weight = 3)
 mainframe.columnconfigure(1,weight = 3)
 mainframe.columnconfigure(2,weight = 3)
@@ -499,44 +554,44 @@ mainframe.rowconfigure(3,weight = 3)
 #scroll bar setup
 h['command'] = canvas.xview
 v['command'] = canvas.yview
-h.grid(column=0, row=4, columnspan = 4, sticky=(W,E))
-v.grid(column=4, row=0, rowspan = 4,  sticky=(N,S))
+h.grid(column=0, row=4, columnspan = 4, sticky=(tk.W,tk.E))
+v.grid(column=4, row=0, rowspan = 4,  sticky=(tk.N,tk.S))
 
 #button
-#button_open_image = ttk.Button(mainframe, text = 'open image', command = open_image).grid(column=5,row=0, sticky=(E,N))
+#button_open_image = ttk.Button(mainframe, text = 'open image', command = open_image).grid(column=5,row=0, sticky=(tk.E,tk.N))
 
 #size grip
-ttk.Sizegrip(root).grid(column=1, row=1, sticky=(S,E))
+ttk.Sizegrip(root).grid(column=1, row=1, sticky=(tk.S,tk.E))
 
 #show cursor coornidate
 cursor_label =ttk.Label(mainframe, text='x:0,y:0')
-cursor_label.grid(column = 0, row = 5, sticky = (W,N))
+cursor_label.grid(column = 0, row = 5, sticky = (tk.W,tk.N))
 canvas.bind('<Leave>', lambda e: cursor_label.configure(text='cursor outside canvas'))
 
 #show other debug info
 debug_label = ttk.Label(mainframe, text='<debug info>')
-debug_label.grid(column = 0, row = 9, sticky = (W,N))
+debug_label.grid(column = 0, row = 9, sticky = (tk.W,tk.N))
 debug2_label = ttk.Label(mainframe, text='<debug2 info>')
-debug2_label.grid(column = 0, row = 6, sticky = (W,N))
+debug2_label.grid(column = 0, row = 6, sticky = (tk.W,tk.N))
 debug3_label = ttk.Label(mainframe, text='<debug3 info>')
-debug3_label.grid(column = 0, row = 7, sticky = (W,N))
+debug3_label.grid(column = 0, row = 7, sticky = (tk.W,tk.N))
 
 hover_mask_label = ttk.Label(mainframe, text='<hover_mask info>')
-hover_mask_label.grid(column = 0, row = 8, sticky = (W,N))
+hover_mask_label.grid(column = 0, row = 8, sticky = (tk.W,tk.N))
 
 
 stack_label = ttk.Label(mainframe, text='<stack info>', wraplength = wrap_length, justify = 'left')
-stack_label.grid(column = 0, row = 16, columnspan = 4, sticky = (W,N))
+stack_label.grid(column = 0, row = 16, columnspan = 4, sticky = (tk.W,tk.N))
 
 canvas_path_label = ttk.Label(mainframe, text='<canvas path info>', wraplength = wrap_length, justify = 'left')
-canvas_path_label.grid(column = 0, row = 17, columnspan = 4, sticky = (W,N))
+canvas_path_label.grid(column = 0, row = 17, columnspan = 4, sticky = (tk.W,tk.N))
 canvas_path_stack_label = ttk.Label(mainframe, text='<canvas path stack info>', wraplength = wrap_length, justify = 'left')
-canvas_path_stack_label.grid(column = 0, row = 18, columnspan = 4, sticky = (W,N))
+canvas_path_stack_label.grid(column = 0, row = 18, columnspan = 4, sticky = (tk.W,tk.N))
 
 min_path_label = ttk.Label(mainframe, text='<min path info>', wraplength = wrap_length, justify = 'left')
-min_path_label.grid(column = 0, row = 19, columnspan = 4, sticky = (W,N))
+min_path_label.grid(column = 0, row = 19, columnspan = 4, sticky = (tk.W,tk.N))
 history_paths_label = ttk.Label(mainframe, text='<history paths info>', wraplength = wrap_length, justify = 'left')
-history_paths_label.grid(column = 0, row = 20, columnspan = 4, sticky = (W,N))
+history_paths_label.grid(column = 0, row = 20, columnspan = 4, sticky = (tk.W,tk.N))
 
 
 #Main function binding
