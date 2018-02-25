@@ -61,37 +61,29 @@ about_window_exist = False
 #start_time = time.time()
 #print('node dict generation')
 #obj.generate_all_node_dict()
+#start_time = time.time()
 #print('node dict generation time:', time.time() - start_time)
 
-def open_image_by_file(file_name):
-    global canvas, image, cvimg, scissor_flag,  obj, draw_image, image_id
-    #clear any information about previous image
-    #TODO check if there's anything else left to be cleaned up
-    scissor_flag = False
-    canvas.delete('all')
-    canvas_contour_stack.clear()
-    history_contour.clear()
-    #TODO get current path
-    #file_name = filedialog.askopenfilename(initialdir = './images')
-    #open image with pillow and load into PILImageTk
+def open_image_by_file1(file_name):
     pil_img = PILImage.open(file_name)
     image = PILImageTk.PhotoImage(pil_img)
-    #alternatively, open image directly with PILImageTk
-    #image = PILImageTk.PhotoImage(file=file_name)
     image_id = canvas.create_image(0,0, image=image, anchor=NW)
-
-    #for draw contour with image
-    draw_image = PILImageDraw.Draw(pil_img)
-
-    obj = IntelligentScissor(np.array(pil_img))
-
     #get picture size and resize canvas window
     img_width, img_height = pil_img.size
     canvas.configure(width=img_width, height=img_height)
+    return image_id
 
+def open_image_by_file(file_name,image_tag):
+    pil_img = PILImage.open(file_name)
+    image = PILImageTk.PhotoImage(pil_img)
+    image_id = canvas.create_image(0,0, image=image, anchor=NW, tags=(image_tag))
+    #get picture size and resize canvas window
+    img_width, img_height = pil_img.size
+    canvas.configure(width=img_width, height=img_height)
+    return image_id
 
 def open_image():
-    global canvas, image, cvimg, scissor_flag,  obj, draw_image, image_id
+    global canvas, operand_image, cvimg, scissor_flag,  obj, draw_image, image_id
     #clear any information about previous image
     #TODO check if there's anything else left to be cleaned up
     scissor_flag = False
@@ -102,10 +94,10 @@ def open_image():
     file_name = filedialog.askopenfilename(initialdir = './images')
     #open image with pillow and load into PILImageTk
     pil_img = PILImage.open(file_name)
-    image = PILImageTk.PhotoImage(pil_img)
+    operand_image = PILImageTk.PhotoImage(pil_img)
     #alternatively, open image directly with PILImageTk
     #image = PILImageTk.PhotoImage(file=file_name)
-    image_id = canvas.create_image(0,0, image=image, anchor=NW)
+    image_id = canvas.create_image(0,0, image=operand_image, anchor=NW, tags = 'operand_image')
 
     #for draw contour with image
     draw_image = PILImageDraw.Draw(pil_img)
@@ -113,8 +105,7 @@ def open_image():
     obj = IntelligentScissor(np.array(pil_img))
 
     #get picture size and resize canvas window
-    img_width, img_height = pil_img.size
-    canvas.configure(width=img_width, height=img_height)
+    canvas.configure(width=operand_image.width(), height=operand_image.height())
 
 
 def seed_to_graph(seed_x,seed_y):
@@ -277,24 +268,28 @@ def get_xy(event):
     cursor_x, cursor_y = canvas.canvasx(event.x), canvas.canvasy(event.y)
     cursor_label.configure(text = 'x:{0} y:{1}'.format(cursor_x, cursor_y))
     #print(cursor_x, cursor_y)
-    if scissor_flag == True:
-        #remove last path in canvas
-        canvas.delete(canvas_path)
-        #draw new path on canvas
-        draw_path(cursor_x,cursor_y, line_width = focus_width)
-        #in_path = obj.get_path((int(cursor_x),int(cursor_y)))
-        #min_path_label.configure(text = 'current canvas_path: {1}'.format(i,canvas_path))
-    else:
-        if len(obj.contour_mask_list) == 0:
-            pass
+    width = operand_image.width()
+    height = operand_image.height()
+    if cursor_x < width and cursor_y < height:
+        if scissor_flag == True:
+            #remove last path in canvas
+            canvas.delete(canvas_path)
+            #draw new path on canvas
+            draw_path(cursor_x,cursor_y, line_width = focus_width)
+            #in_path = obj.get_path((int(cursor_x),int(cursor_y)))
+            #min_path_label.configure(text = 'current canvas_path: {1}'.format(i,canvas_path))
         else:
-            hovered_mask_idx = obj.coordinate_mask(int(cursor_x),int(cursor_y))
-            if hovered_mask_idx == -99:
-                highlight_contour(canvas_contour_stack[last_hovered_mask], width = unfocus_width, color = 'green')
+            if len(obj.contour_mask_list) == 0:
+                pass
             else:
-                highlight_contour(canvas_contour_stack[hovered_mask_idx], width = focus_width, color = 'red')
-                last_hovered_mask = hovered_mask_idx
-
+                hovered_mask_idx = obj.coordinate_mask(int(cursor_x),int(cursor_y))
+                if hovered_mask_idx == -99:
+                    highlight_contour(canvas_contour_stack[last_hovered_mask], width = unfocus_width, color = 'green')
+                else:
+                    highlight_contour(canvas_contour_stack[hovered_mask_idx], width = focus_width, color = 'red')
+                    last_hovered_mask = hovered_mask_idx
+    else:
+        cursor_label.configure(text = 'cursor outside image')
 
     show_debug(show = debug_setting)
 
@@ -396,11 +391,36 @@ def save_mask():
         #canvas.itemconfigure(image_id, image=mask_image_tk)
         #input('canvas should be updated by now, press enter to continue')
 
-def show_path_tree():
+def show_image_only(event):
+    global image_id
+    canvas.delete('debug_image')
+    image_id = canvas.create_image(0,0, image=operand_image, anchor=NW)
+    img_width, img_height = pil_img.size
+    #canvas.configure(width=operand_image.width(), height=operand_image.height())
+    input('image should change now, enter to continue')
+
+def show_image_with_contour(event):
+    pass
+
+def show_pixel_nodes(event):
+    pass
+
+def show_cost_graph(event):
+    pass
+
+def show_path_tree(event):
+    start_time = time.time()
+    obj.path_tree_generation()
+    print('path_tree generation time:', time.time() - start_time)
     save_file_name = './output/path_tree.png'
     path_tree_img = PILImage.fromarray((obj.path_tree*255).astype(np.uint8))
+    #path_tree_img = PILImage.fromarray((obj.path_tree))
     path_tree_img.save(save_file_name)
-    open_image_by_file(save_file_name)
+    #open_image_by_file(save_file_name, image_tag = 'debug_image')
+    open_image_by_file1(save_file_name)
+
+def show_minimum_path(event):
+    pass
 
 def create_help_window():
     global help_window_exist
@@ -490,7 +510,12 @@ def create_scissor_window():
         #binding
         scissor_window.bind('<1>',lambda e : scissor_debug_label.configure(text = scissor_mode.get()))
         scissor_window.bind('<1>',lambda e : scissor_debug2_label.configure(text = brush_selection.get()))
+        image_only.bind('<1>',show_image_only)
+        image_with_contour.bind('<1>',show_image_with_contour)
+        pixel_nodes.bind('<1>',show_pixel_nodes)
+        cost_graph.bind('<1>',show_cost_graph)
         path_tree.bind('<1>',show_path_tree)
+        minimum_path.bind('<1>',show_minimum_path)
 
         scissor_window.protocol('WM_DELETE_WINDOW', close_scissor_window)
 

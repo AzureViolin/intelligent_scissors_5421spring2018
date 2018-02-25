@@ -159,7 +159,7 @@ class IntelligentScissor():
         self.path_tree = np.expand_dims((self.path_tree/np.max(self.path_tree)*255).astype(np.uint8), axis=2)
         self.path_tree = np.concatenate([self.path_tree, self.path_tree, np.zeros((self.height*3, self.width*3,1), dtype=np.uint8)],axis=2 )
         #Image.fromarray((self.path_tree/np.max(self.path_tree)*255).astype(np.uint8)).save("./output/test_path_tree.png")
-        Image.fromarray(self.path_tree).save("./output/test_path_tree.png")
+        #Image.fromarray(self.path_tree).save("./output/test_path_tree.png")
 
     def get_path_from_tree(self, pose):
         path = []
