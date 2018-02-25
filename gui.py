@@ -64,18 +64,10 @@ about_window_exist = False
 #start_time = time.time()
 #print('node dict generation time:', time.time() - start_time)
 
-def open_image_by_file1(file_name):
-    pil_img = PILImage.open(file_name)
-    image = PILImageTk.PhotoImage(pil_img)
-    image_id = canvas.create_image(0,0, image=image, anchor=NW)
-    #get picture size and resize canvas window
-    img_width, img_height = pil_img.size
-    canvas.configure(width=img_width, height=img_height)
-    return image_id
-
 def open_image_by_file(file_name,image_tag):
     pil_img = PILImage.open(file_name)
     image = PILImageTk.PhotoImage(pil_img)
+    canvas.background = image
     image_id = canvas.create_image(0,0, image=image, anchor=NW, tags=(image_tag))
     #get picture size and resize canvas window
     img_width, img_height = pil_img.size
@@ -414,11 +406,10 @@ def show_path_tree(event):
     obj.path_tree_generation()
     print('path_tree generation time:', time.time() - start_time)
     save_file_name = './output/path_tree.png'
-    path_tree_img = PILImage.fromarray((obj.path_tree*255).astype(np.uint8))
-    #path_tree_img = PILImage.fromarray((obj.path_tree))
+    #path_tree_img = PILImage.fromarray((obj.path_tree*255).astype(np.uint8))
+    path_tree_img = PILImage.fromarray((obj.path_tree))
     path_tree_img.save(save_file_name)
-    #open_image_by_file(save_file_name, image_tag = 'debug_image')
-    open_image_by_file1(save_file_name)
+    open_image_by_file(save_file_name, image_tag = 'debug_image')
 
 def show_minimum_path(event):
     pass
