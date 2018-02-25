@@ -92,6 +92,9 @@ def open_image():
     #clear any information about previous image
     #TODO check if there's anything else left to be cleaned up
     delete_debug_pics()
+    create_scissor_window()
+    close_scissor_window()
+    scissor_mode.set('image_with_contour')
     scissor_flag = False
     canvas.delete('all')
     canvas_contour_stack.clear()
@@ -407,7 +410,7 @@ def show_pixel_nodes(event):
             start_time = time.time()
             obj.link_calculation()
             print('pixel_nodes generation time:', time.time() - start_time)
-            pixel_nodes_img = PILImage.fromarray((obj.pixel_node).astype(np.uint8))
+            pixel_nodes_img = PILImage.fromarray((np.squeeze(obj.pixel_node)).astype(np.uint8))
             pixel_nodes_img.save(pixel_nodes_file_name)
         open_image_by_file(pixel_nodes_file_name, image_tag = 'debug_image')
 
@@ -420,7 +423,8 @@ def show_cost_graph(event):
             start_time = time.time()
             obj.link_calculation()
             print('cost_graph generation time:', time.time() - start_time)
-            cost_graph_img = PILImage.fromarray((obj.cost_graph).astype(np.uint8))
+            print ('cost graph shape and dtype:',obj.cost_graph.shape, obj.cost_graph.dtype)
+            cost_graph_img = PILImage.fromarray(np.squeeze(obj.cost_graph).astype(np.uint8))
             cost_graph_img.save(cost_graph_file_name)
         open_image_by_file(cost_graph_file_name, image_tag = 'debug_image')
 
