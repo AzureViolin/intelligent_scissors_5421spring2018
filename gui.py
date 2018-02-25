@@ -270,7 +270,8 @@ def get_xy(event):
     #print(cursor_x, cursor_y)
     width = operand_image.width()
     height = operand_image.height()
-    if cursor_x < width and cursor_y < height:
+    if cursor_x < width and cursor_y < height \
+        and cursor_x > 0 and cursor_y > 0:
         if scissor_flag == True:
             #remove last path in canvas
             canvas.delete(canvas_path)
