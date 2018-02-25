@@ -69,6 +69,13 @@ about_window_exist = False
 #obj.generate_all_node_dict()
 #start_time = time.time()
 #print('node dict generation time:', time.time() - start_time)
+def delete_debug_pics():
+    if os.path.isfile(path_tree_file_name):
+        os.remove(path_tree_file_name)
+    if os.path.isfile(pixel_nodes_file_name):
+        os.remove(pixel_nodes_file_name)
+    if os.path.isfile(cost_graph_file_name):
+        os.remove(cost_graph_file_name)
 
 def open_image_by_file(file_name,image_tag):
     pil_img = PILImage.open(file_name)
@@ -84,6 +91,7 @@ def open_image():
     global canvas, operand_image, cvimg, scissor_flag,  obj, draw_image, image_id
     #clear any information about previous image
     #TODO check if there's anything else left to be cleaned up
+    delete_debug_pics()
     scissor_flag = False
     canvas.delete('all')
     canvas_contour_stack.clear()
@@ -399,7 +407,7 @@ def show_pixel_nodes(event):
             start_time = time.time()
             obj.link_calculation()
             print('pixel_nodes generation time:', time.time() - start_time)
-            pixel_nodes_img = PILImage.fromarray((obj.pixel_node*255).astype(np.uint8))
+            pixel_nodes_img = PILImage.fromarray((obj.pixel_node).astype(np.uint8))
             pixel_nodes_img.save(pixel_nodes_file_name)
         open_image_by_file(pixel_nodes_file_name, image_tag = 'debug_image')
 
@@ -412,7 +420,7 @@ def show_cost_graph(event):
             start_time = time.time()
             obj.link_calculation()
             print('cost_graph generation time:', time.time() - start_time)
-            cost_graph_img = PILImage.fromarray((obj.pixel_node*255).astype(np.uint8))
+            cost_graph_img = PILImage.fromarray((obj.cost_graph).astype(np.uint8))
             cost_graph_img.save(cost_graph_file_name)
         open_image_by_file(cost_graph_file_name, image_tag = 'debug_image')
 
@@ -660,14 +668,10 @@ create_scissor_window()
 close_scissor_window()
 scissor_mode.set('image_with_contour')
 
+
 def close_root():
     print('close root window')
-    if os.path.isfile(path_tree_file_name):
-        os.remove(path_tree_file_name)
-    if os.path.isfile(pixel_nodes_file_name):
-        os.remove(pixel_nodes_file_name)
-    if os.path.isfile(cost_graph_file_name):
-        os.remove(cost_graph_file_name)
+    delete_debug_pics()
     root.destroy()
 
 root.protocol('WM_DELETE_WINDOW', close_root)
