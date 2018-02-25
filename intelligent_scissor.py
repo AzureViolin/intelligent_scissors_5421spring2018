@@ -111,7 +111,7 @@ class IntelligentScissor():
                 +np.zeros(self.dim)
         self.cost_graph[2::3,2::3,:]=self.link_cost[:,:,7:8]\
                 +np.zeros(self.dim)
-        self.cost_graph[1::3,1::3,:]=self.img
+        self.cost_graph[1::3,1::3,:]=self.img+np.zeros(self.dim)
         return self.cost_graph
 
     def path_tree_generation(self):
