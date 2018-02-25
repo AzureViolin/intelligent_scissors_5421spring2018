@@ -191,7 +191,7 @@ def finish(event):
 
 def click_xy(event):
     global last_x, last_y, scissor_flag, point_stack, canvas_id, canvas_path, canvas_path_stack, i, highlight_id
-    if scissor_flag == True:
+    if scissor_flag == True and scissor_mode.get() == 'image_with_contour':
         x, y = canvas.canvasx(event.x), canvas.canvasy(event.y)
         set_color('green')
         #fix current path on canvas, start new seed
@@ -208,7 +208,7 @@ def click_xy(event):
         point_stack.append([x,y,canvas_id])
         if os.path.isfile(path_tree_file_name):
             os.remove(path_tree_file_name)
-    else:
+    elif scissor_flag == False:
         print('Nothing will happen even if you keep clicking mouse, since we are not in live wire mode yet.')
 
     show_debug(show = debug_setting)
@@ -268,13 +268,18 @@ def get_xy(event):
     #print(cursor_x, cursor_y)
     width = operand_image.width()
     height = operand_image.height()
-    if cursor_x < width and cursor_y < height \
-        and cursor_x > 0 and cursor_y > 0:
-        if scissor_flag == True:
-            #remove last path in canvas
+    if scissor_mode.get() == 'minimum_path' and scissor_flag == True:
+        if cursor_x < width*3 and cursor_y < height*3 and cursor_x > 0 and cursor_y > 0:
             canvas.delete(canvas_path)
-            #draw new path on canvas
-            if scissor_mode.get() == 'image_with_contour' or scissor_mode.get() == 'minimum_path':
+            draw_path_in_tree(cursor_x,cursor_y, line_width = focus_width)
+        else:
+            cursor_label.configure(text = 'cursor outside path tree image')
+    elif cursor_x < width and cursor_y < height and cursor_x > 0 and cursor_y > 0:
+        if scissor_flag == True:
+            if scissor_mode.get() == 'image_with_contour':
+                #remove last path in canvas
+                canvas.delete(canvas_path)
+                #draw new path on canvas
                 draw_path(cursor_x,cursor_y, line_width = focus_width)
             #in_path = obj.get_path((int(cursor_x),int(cursor_y)))
             #min_path_label.configure(text = 'current canvas_path: {1}'.format(i,canvas_path))
@@ -325,6 +330,15 @@ def remove_canvas_contour(canvas_path_to_be_removed):
     for line_id in canvas_path_to_be_removed:
         canvas.delete(line_id)
     #canvas_path_to_be_removed.clear()
+
+def draw_path_in_tree(x,y,line_width):
+    global cursor_label, canvas_id, last_x, last_y, canvas_path, min_path_label, min_path
+    cursor_label.configure(text = 'getting path in tree for x:{0} y:{1}'.format(cursor_x, cursor_y))
+    min_path = obj.get_path_from_tree((int(x),int(y)))
+    set_color('red')
+    min_path_len = len(min_path)
+    canvas_id = canvas.create_line(min_path, fill = color, width = line_width, tags = 'currentline')
+    canvas_path = canvas_id
 
 def draw_path(x,y,line_width):
     global cursor_label, canvas_id, last_x, last_y, canvas_path, min_path_label, min_path
