@@ -22,7 +22,8 @@ unfocus_width = 1
 
 highlight_id = []
 
-debug_setting = True
+debug_setting = False
+brush_implemented = False
 
 path_tree_file_name = './output/path_tree.png'
 pixel_nodes_file_name = './output/pixel_nodes.png'
@@ -274,7 +275,7 @@ def get_xy(event):
             draw_path_in_tree(cursor_x,cursor_y, line_width = focus_width)
         else:
             cursor_label.configure(text = 'cursor outside path tree image')
-    elif cursor_x < width and cursor_y < height and cursor_x > 0 and cursor_y > 0:
+    elif cursor_x < width-1 and cursor_y < height-1 and cursor_x > 0 and cursor_y > 0:
         if scissor_flag == True:
             if scissor_mode.get() == 'image_with_contour':
                 #remove last path in canvas
@@ -342,7 +343,7 @@ def draw_path_in_tree(x,y,line_width):
 
 def draw_path(x,y,line_width):
     global cursor_label, canvas_id, last_x, last_y, canvas_path, min_path_label, min_path
-    cursor_label.configure(text = 'getting path for x:{0} y:{1}'.format(cursor_x, cursor_y))
+    cursor_label.configure(text = 'get path for x:{0} y:{1}'.format(cursor_x, cursor_y))
     min_path = obj.get_path((int(x),int(y)))
     set_color('red')
     min_path_len = len(min_path)
@@ -406,14 +407,18 @@ def save_mask():
         #input('canvas should be updated by now, press enter to continue')
 
 def show_image_only(event):
-    global image_id
     canvas.delete('debug_image')
-    image_id = canvas.create_image(0,0, image=operand_image, anchor=NW)
-    #canvas.configure(width=operand_image.width(), height=operand_image.height())
+    canvas.delete('reopened_image')
+    image_id = canvas.create_image(0,0, image=operand_image, anchor=NW, tags = ('reopened_image'))
+    canvas.tag_raise(image_id)
+    print('re opend image id:',image_id)
+    canvas.configure(width=operand_image.width(), height=operand_image.height())
+    return image_id
     #input('image should change now, enter to continue')
 
 def show_image_with_contour(event):
-    show_image_only(event)
+    image_id = show_image_only(event)
+    canvas.tag_lower(image_id)
 
 def show_pixel_nodes(event):
     if scissor_mode.get() != 'pixel_nodes':
@@ -528,8 +533,9 @@ def create_scissor_window():
         minimum_path = ttk.Radiobutton(scissor_frame, text = 'Minimum Path', variable = scissor_mode, value = 'minimum_path')
         gradient_map = ttk.Radiobutton(scissor_frame, text = 'Gradient Map', variable = scissor_mode, value = 'gradient_map')
 
-        scissor_range_label.grid(column = 0, row = 0, sticky = (tk.W,tk.N))
-        scissor_range.grid(column = 0, row = 1, sticky = (tk.W,tk.N))
+        if brush_implemented == True:
+            scissor_range_label.grid(column = 0, row = 0, sticky = (tk.W,tk.N))
+            scissor_range.grid(column = 0, row = 1, sticky = (tk.W,tk.N))
         separator1.grid(column = 0, row = 4, sticky = tk.W)
 
         work_mode_label.grid(column = 0, row = 5, sticky = (tk.W,tk.N))
@@ -541,11 +547,12 @@ def create_scissor_window():
         cost_graph.grid(column = 1, row = 8, sticky = tk.W)
         path_tree.grid(column = 0, row = 9, sticky = tk.W)
         minimum_path.grid(column = 1, row = 9, sticky = tk.W)
-        gradient_map.grid(column = 0, row = 10, sticky = tk.W)
+        #gradient_map.grid(column = 0, row = 10, sticky = tk.W)
 
         separator2.grid(column = 0, row = 13, sticky = tk.W)
-        scissor_debug_label.grid(column = 0, row = 14, sticky = (tk.W,tk.N))
-        scissor_debug2_label.grid(column = 0, row = 15, sticky = (tk.W,tk.N))
+        if debug_setting == True:
+            scissor_debug_label.grid(column = 0, row = 14, sticky = (tk.W,tk.N))
+            scissor_debug2_label.grid(column = 0, row = 15, sticky = (tk.W,tk.N))
 
         #binding
         scissor_window.bind('<1>',lambda e : scissor_debug_label.configure(text = scissor_mode.get()))
@@ -561,7 +568,7 @@ def create_scissor_window():
 
 def close_scissor_window():
     global scissor_window_exist
-    print('close scissor window')
+    #print('close scissor window')
     scissor_window_exist = False
     scissor_window.destroy()
 
@@ -584,7 +591,8 @@ menubar.add_cascade(label="File", menu=file_menu)
 
 tools_menu = tk.Menu(menubar, tearoff = 0)
 tools_menu.add_command(label = "Scissor", command = create_scissor_window)
-tools_menu.add_command(label = "Brush", command = create_brush_window)
+if brush_implemented == True:
+    tools_menu.add_command(label = "Brush", command = create_brush_window)
 menubar.add_cascade(label="Tools", menu=tools_menu)
 
 help_menu = tk.Menu(menubar, tearoff = 0)
@@ -635,28 +643,30 @@ canvas.bind('<Leave>', lambda e: cursor_label.configure(text='cursor outside can
 
 #show other debug info
 debug_label = ttk.Label(mainframe, text='<debug info>')
-debug_label.grid(column = 0, row = 9, sticky = (tk.W,tk.N))
 debug2_label = ttk.Label(mainframe, text='<debug2 info>')
-debug2_label.grid(column = 0, row = 6, sticky = (tk.W,tk.N))
 debug3_label = ttk.Label(mainframe, text='<debug3 info>')
-debug3_label.grid(column = 0, row = 7, sticky = (tk.W,tk.N))
 
-hover_mask_label = ttk.Label(mainframe, text='<hover_mask info>')
-hover_mask_label.grid(column = 0, row = 8, sticky = (tk.W,tk.N))
 
 
 stack_label = ttk.Label(mainframe, text='<stack info>', wraplength = wrap_length, justify = 'left')
-stack_label.grid(column = 0, row = 16, columnspan = 4, sticky = (tk.W,tk.N))
 
 canvas_path_label = ttk.Label(mainframe, text='<canvas path info>', wraplength = wrap_length, justify = 'left')
-canvas_path_label.grid(column = 0, row = 17, columnspan = 4, sticky = (tk.W,tk.N))
 canvas_path_stack_label = ttk.Label(mainframe, text='<canvas path stack info>', wraplength = wrap_length, justify = 'left')
-canvas_path_stack_label.grid(column = 0, row = 18, columnspan = 4, sticky = (tk.W,tk.N))
 
 min_path_label = ttk.Label(mainframe, text='<min path info>', wraplength = wrap_length, justify = 'left')
-min_path_label.grid(column = 0, row = 19, columnspan = 4, sticky = (tk.W,tk.N))
 history_paths_label = ttk.Label(mainframe, text='<history paths info>', wraplength = wrap_length, justify = 'left')
-history_paths_label.grid(column = 0, row = 20, columnspan = 4, sticky = (tk.W,tk.N))
+
+if debug_setting == True:
+    hover_mask_label = ttk.Label(mainframe, text='<hover_mask info>')
+    debug_label.grid(column = 0, row = 9, sticky = (tk.W,tk.N))
+    debug2_label.grid(column = 0, row = 6, sticky = (tk.W,tk.N))
+    debug3_label.grid(column = 0, row = 7, sticky = (tk.W,tk.N))
+    hover_mask_label.grid(column = 0, row = 8, sticky = (tk.W,tk.N))
+    stack_label.grid(column = 0, row = 16, columnspan = 4, sticky = (tk.W,tk.N))
+    canvas_path_label.grid(column = 0, row = 17, columnspan = 4, sticky = (tk.W,tk.N))
+    canvas_path_stack_label.grid(column = 0, row = 18, columnspan = 4, sticky = (tk.W,tk.N))
+    min_path_label.grid(column = 0, row = 19, columnspan = 4, sticky = (tk.W,tk.N))
+    history_paths_label.grid(column = 0, row = 20, columnspan = 4, sticky = (tk.W,tk.N))
 
 
 #Main function binding
