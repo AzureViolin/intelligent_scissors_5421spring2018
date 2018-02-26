@@ -140,20 +140,23 @@ def live_wire_mode(flag):
 
 def start(event):
     global last_x, last_y, start_x, start_y, scissor_flag, point_stack, finish_flag
-    if scissor_flag == False:
-        live_wire_mode(True)
-        start_x, start_y = canvas.canvasx(event.x), canvas.canvasy(event.y)
-        last_x, last_y = start_x, start_y
-        point_stack.clear()
-        point_stack.append([start_x,start_y,-99])
-        stack_label.configure(text=point_stack)
-        print('start_x, start_y: {0} {1}'.format(start_x, start_y))
-        seed_to_graph(start_x,start_y)
-        canvas_path_stack.clear()
-        canvas.delete(canvas_path)
-        history_paths.clear()
-    else :
-        print('Warning: You have to finish a contour before starting a new one.')
+    if scissor_mode.get() == 'image_with_contour':
+        if scissor_flag == False:
+            live_wire_mode(True)
+            start_x, start_y = canvas.canvasx(event.x), canvas.canvasy(event.y)
+            last_x, last_y = start_x, start_y
+            point_stack.clear()
+            point_stack.append([start_x,start_y,-99])
+            stack_label.configure(text=point_stack)
+            print('start_x, start_y: {0} {1}'.format(start_x, start_y))
+            seed_to_graph(start_x,start_y)
+            canvas_path_stack.clear()
+            canvas.delete(canvas_path)
+            history_paths.clear()
+        else :
+            print('Warning: You have to finish a contour before starting a new one.')
+    else:
+        print('Warning: Initial seed only works in image with contour mode')
 
 def close_contour_finish(event):
     global scissor_flag, canvas_id, canvas_path_stack, canvas_path, i, history_paths, finish_flag, obj, canvas_contour_stack
@@ -324,7 +327,7 @@ def show_debug(show):
 def highlight_contour(contour,width,color):
     for line_id in contour:
         #canvas.itemconfigure(line_id,width = width, color = color)
-        canvas.itemconfigure(line_id,width = width)
+        canvas.itemconfigure(line_id,width = width, fill = color)
 
 def remove_canvas_contour(canvas_path_to_be_removed):
     canvas_path_len = len(canvas_path_to_be_removed)
@@ -478,26 +481,44 @@ def create_help_window():
         #TODO better way to show help text
         help_text = tk.Text(help_window)
         help_text.grid(column = 0, row = 0)
-        help_text.insert('1.0', 'File-->Save Contour, save image with contour marked;')
-#File-->Save Mask, save compositing mask for PhotoShop;
-#Tool-->Scissor, open a panel to choose what to draw in the window
-#Work Mode:
-#Image Only: show original image without contour superimposed on it;
-#Image with Contour: show original image with contours superimposed on it;
-#Debug Mode:
-#Pixel Node:  Draw a cost graph with original image pixel colors at the center of each 3by3 window, and black everywhere else;
-#Cost Graph: Draw a cost graph with both pixel colors and link costs, where you can see whether your cost computation is reasonable or not, e.g., low cost (dark intensity) for links along image edges.
-#Path Tree: show minimum path tree in the cost graph for the current seed; You can use the counter widget to simulate how the tree is computed by specifying the number of expanded nodes. The tree consists of links with yellow color. The back track direction (towards the seed) goes from light yellow to dark yellow.
-#Min Path: show the minimum path between the current seed and the mouse position;
-#To use the "path tree" and "min path" in debug mode, you need to have an active seed point. the active seed point is the last "left click / ctrl + left click" point on the contour you are working with, e.g., the contour that has not yet be committed by "enter / ctrl + enter". (See the short cut keys below)
-#Ctrl+"+", zoom in;
-#Ctrl+"-", zoom out;
-#Ctrl+Left click first seed;
-#Left click, following seeds;
-#Enter, finish the current contour;
-#Ctrl+Enter, finish the current contour as closed;
-#Backspace, when scissoring, delete the last seed; otherwise, delete selected contour.
-#Select a contour by moving onto it. Selected contour is red, un-selected ones are green.
+        help_text.insert('1.0', '''
+File-->Save Contour, save image with contour marked;
+File-->Save Mask, save compositing mask for PhotoShop;
+Tool-->Scissor, open a panel to choose what to draw in the window
+
+
+Work Mode:
+
+Image Only: show original image without contour superimposed on it;
+
+Image with Contour: show original image with contours superimposed on it;
+
+
+Debug Mode:
+
+Pixel Node:  Draw a cost graph with original image pixel colors at the center of each 3by3 window, and black everywhere else;
+
+Cost Graph: Draw a cost graph with both pixel colors and link costs, where you can see whether your cost computation is reasonable or not, e.g., low cost (dark intensity) for links along image edges.
+
+Path Tree: show minimum path tree in the cost graph for the current seed; You can use the counter widget to simulate how the tree is computed by specifying the number of expanded nodes. The tree consists of links with yellow color. The back track direction (towards the seed) goes from light yellow to dark yellow.
+
+Min Path: show the minimum path between the current seed and the mouse position;
+To use the "path tree" and "min path" in debug mode, you need to have an active seed point. the active seed point is the last "left click / ctrl + left click" point on the contour you are working with, e.g., the contour that has not yet be committed by "enter / ctrl + enter". (See the short cut keys below)
+
+
+Ctrl+"+", zoom in;
+Ctrl+"-", zoom out;
+
+Ctrl+Left click first seed;
+Left click, following seeds;
+
+Enter, finish the current contour;
+Ctrl+Enter, finish the current contour as closed;
+
+Backspace, when scissoring, delete the last seed; otherwise, delete selected contour.
+Select a contour by moving onto it. Selected contour is red, un-selected ones are green.
+''')
+        help_text.configure(state='disabled')
 
 def create_about_window():
     global about_window_exist, about_window
