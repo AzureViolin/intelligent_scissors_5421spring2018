@@ -142,6 +142,8 @@ def start(event):
     global last_x, last_y, start_x, start_y, scissor_flag, point_stack, finish_flag
     if scissor_mode.get() == 'image_with_contour':
         if scissor_flag == False:
+            if os.path.isfile(path_tree_file_name):
+                os.remove(path_tree_file_name)
             live_wire_mode(True)
             start_x, start_y = canvas.canvasx(event.x), canvas.canvasy(event.y)
             last_x, last_y = start_x, start_y
@@ -273,7 +275,7 @@ def get_xy(event):
     width = operand_image.width()
     height = operand_image.height()
     if scissor_mode.get() == 'minimum_path' and scissor_flag == True:
-        if cursor_x < width*3 and cursor_y < height*3 and cursor_x > 0 and cursor_y > 0:
+        if cursor_x < width*3-3 and cursor_y < height*3-3 and cursor_x > 3 and cursor_y > 3:
             canvas.delete(canvas_path)
             draw_path_in_tree(cursor_x,cursor_y, line_width = focus_width)
         else:
