@@ -467,22 +467,44 @@ def show_minimum_path(event):
         show_path_tree(event)
 
 def create_help_window():
-    global help_window_exist
+    global help_window_exist,help_window
     if help_window_exist == False:
         help_window_exist = True
         help_window = tk.Toplevel(root)
+        help_window.protocol('WM_DELETE_WINDOW', close_help_window)
         help_window.title('Help')
         help_frame = ttk.Frame(help_window,padding='5', borderwidth = '8')
         help_frame.grid(column = 0, row = 0)
         #TODO better way to show help text
         help_text = tk.Text(help_window)
         help_text.grid(column = 0, row = 0)
+        help_text.insert('1.0', 'File-->Save Contour, save image with contour marked;')
+#File-->Save Mask, save compositing mask for PhotoShop;
+#Tool-->Scissor, open a panel to choose what to draw in the window
+#Work Mode:
+#Image Only: show original image without contour superimposed on it;
+#Image with Contour: show original image with contours superimposed on it;
+#Debug Mode:
+#Pixel Node:  Draw a cost graph with original image pixel colors at the center of each 3by3 window, and black everywhere else;
+#Cost Graph: Draw a cost graph with both pixel colors and link costs, where you can see whether your cost computation is reasonable or not, e.g., low cost (dark intensity) for links along image edges.
+#Path Tree: show minimum path tree in the cost graph for the current seed; You can use the counter widget to simulate how the tree is computed by specifying the number of expanded nodes. The tree consists of links with yellow color. The back track direction (towards the seed) goes from light yellow to dark yellow.
+#Min Path: show the minimum path between the current seed and the mouse position;
+#To use the "path tree" and "min path" in debug mode, you need to have an active seed point. the active seed point is the last "left click / ctrl + left click" point on the contour you are working with, e.g., the contour that has not yet be committed by "enter / ctrl + enter". (See the short cut keys below)
+#Ctrl+"+", zoom in;
+#Ctrl+"-", zoom out;
+#Ctrl+Left click first seed;
+#Left click, following seeds;
+#Enter, finish the current contour;
+#Ctrl+Enter, finish the current contour as closed;
+#Backspace, when scissoring, delete the last seed; otherwise, delete selected contour.
+#Select a contour by moving onto it. Selected contour is red, un-selected ones are green.
 
 def create_about_window():
-    global about_window_exist
+    global about_window_exist, about_window
     if about_window_exist == False:
         about_window_exist = True
         about_window = tk.Toplevel(root)
+        about_window.protocol('WM_DELETE_WINDOW', close_about_window)
         about_window.title('About this software')
         about_frame = ttk.Frame(about_window,padding='5', borderwidth = '8')
         about_frame.grid(column = 0, row = 0)
@@ -490,10 +512,11 @@ def create_about_window():
         about_label.grid(column = 0, row = 0)
 
 def create_brush_window():
-    global brush_window_exist
+    global brush_window_exist, brush_window
     if brush_window_exist == False:
         brush_window_exist = True
         brush_window = tk.Toplevel(root)
+        brush_window.protocol('WM_DELETE_WINDOW', close_brush_window)
         brush_window.title('Brush Config')
 
 def create_scissor_window():
@@ -502,6 +525,7 @@ def create_scissor_window():
         scissor_window_exist = True
         #window
         scissor_window = tk.Toplevel(root)
+        scissor_window.protocol('WM_DELETE_WINDOW', close_scissor_window)
         scissor_window.title('Scissor Config')
         scissor_window.grid_columnconfigure(0,weight = 1)
         scissor_window.grid_rowconfigure(0, weight = 1)
@@ -564,13 +588,26 @@ def create_scissor_window():
         path_tree.bind('<1>',show_path_tree)
         minimum_path.bind('<1>',show_minimum_path)
 
-        scissor_window.protocol('WM_DELETE_WINDOW', close_scissor_window)
 
 def close_scissor_window():
     global scissor_window_exist
-    #print('close scissor window')
     scissor_window_exist = False
     scissor_window.destroy()
+
+def close_brush_window():
+    global brush_window_exist
+    brush_window_exist = False
+    brush_window.destroy()
+
+def close_help_window():
+    global help_window_exist
+    help_window_exist = False
+    help_window.destroy()
+
+def close_about_window():
+    global about_window_exist
+    about_window_exist = False
+    about_window.destroy()
 
 
 root = tk.Tk()
@@ -586,7 +623,7 @@ file_menu.add_separator()
 file_menu.add_command(label="Save Contour", command = save_contour)
 file_menu.add_command(label="Save Mask", command = save_mask)
 file_menu.add_separator()
-file_menu.add_command(label="Exit", command = root.quit)
+file_menu.add_command(label="Exit", command = root.destroy)
 menubar.add_cascade(label="File", menu=file_menu)
 
 tools_menu = tk.Menu(menubar, tearoff = 0)
