@@ -274,7 +274,8 @@ def get_xy(event):
     #print(cursor_x, cursor_y)
     width = operand_image.width()
     height = operand_image.height()
-    if scissor_mode.get() == 'minimum_path' and scissor_flag == True:
+    #if scissor_mode.get() == 'minimum_path' and scissor_flag == True:
+    if scissor_mode.get() == 'minimum_path':
         if cursor_x < width*3-3 and cursor_y < height*3-3 and cursor_x > 3 and cursor_y > 3:
             canvas.delete(canvas_path)
             draw_path_in_tree(cursor_x,cursor_y, line_width = focus_width)
@@ -343,7 +344,7 @@ def draw_path_in_tree(x,y,line_width):
     min_path = obj.get_path_from_tree((int(x),int(y)))
     set_color('red')
     min_path_len = len(min_path)
-    canvas_id = canvas.create_line(min_path, fill = color, width = line_width, tags = 'currentline')
+    canvas_id = canvas.create_line(min_path, fill = color, width = line_width, tags = 'current_tree_line')
     canvas_path = canvas_id
 
 def draw_path(x,y,line_width):
@@ -352,7 +353,7 @@ def draw_path(x,y,line_width):
     min_path = obj.get_path((int(x),int(y)))
     set_color('red')
     min_path_len = len(min_path)
-    canvas_id = canvas.create_line(min_path, fill = color, width = line_width, tags = 'currentline')
+    canvas_id = canvas.create_line(min_path, fill = color, width = line_width, tags = 'current_line')
     canvas_path = canvas_id
     #for index, point in enumerate(min_path):
     #    if index < (min_path_len - 1):
@@ -423,6 +424,7 @@ def show_image_only(event):
 
 def show_image_with_contour(event):
     image_id = show_image_only(event)
+    canvas.delete('current_tree_line')
     canvas.tag_lower(image_id)
 
 def show_pixel_nodes(event):
@@ -453,6 +455,7 @@ def show_cost_graph(event):
         open_image_by_file(cost_graph_file_name, image_tag = 'debug_image')
 
 def show_path_tree(event):
+    global path_tree_id
     if scissor_mode.get() != 'minimum_path' and scissor_mode.get() != 'path_tree':
         if os.path.isfile(path_tree_file_name):
             pass
@@ -464,8 +467,9 @@ def show_path_tree(event):
             #path_tree_img = PILImage.fromarray((obj.path_tree*255).astype(np.uint8))
             path_tree_img = PILImage.fromarray((obj.path_tree))
             path_tree_img.save(path_tree_file_name)
-
-        open_image_by_file(path_tree_file_name, image_tag = 'debug_image')
+        path_tree_id = open_image_by_file(path_tree_file_name, image_tag = 'debug_image')
+    else:
+        canvas.tag_raise(path_tree_id)
 
 def show_minimum_path(event):
     if scissor_mode.get() != 'minimum_path' and scissor_mode.get() != 'path_tree':
