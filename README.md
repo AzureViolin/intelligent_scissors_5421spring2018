@@ -6,8 +6,10 @@
 ## environment setup
 python == 3.6/3.4.3
 opencv == 3.1/3.4
-tkinter
-pillow
+```bash
+sudo apt-get install python3-pip python3-tk python3-pil.imagetk
+sudo pip3 install numpy
+```
 
 ## to run gui
 ```bash

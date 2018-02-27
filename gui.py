@@ -10,7 +10,6 @@ from intelligent_scissor import IntelligentScissor
 import numpy as np
 import time
 from functools import partial
-import cv2
 import os
 
 #TODO
