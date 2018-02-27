@@ -38,8 +38,6 @@ class IntelligentScissor():
                 dtype=np.float32)
         self.pixel_node=np.zeros((self.height*3, self.width*3, self.dim),
                 dtype=np.int32)
-        self.path_tree=np.zeros((self.height*3, self.width*3),
-                dtype=np.float32)
 
         self.node_dict = {}
         self.mask = np.zeros((self.height, self.width),dtype=np.int32)
@@ -115,6 +113,8 @@ class IntelligentScissor():
         return self.cost_graph
 
     def path_tree_generation(self):
+        self.path_tree=np.zeros((self.height*3, self.width*3),
+                dtype=np.float32)
         self.update_node_dict()
         pathtree_q=deque()
         seed_key = self.coordinate2key((1, 1))
