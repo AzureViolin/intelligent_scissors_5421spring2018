@@ -97,7 +97,7 @@ def open_image_by_file(file_name,image_tag):
     print('canvas objects after open image by file:',canvas.find_all())
     return image_id
 
-def open_image():
+def open_image1():
     global last_w,last_h,pil_img
     file_name = filedialog.askopenfilename(initialdir = './images')
     pil_img = PILImage.open(file_name)
@@ -109,7 +109,7 @@ def open_image():
     picture_display.config(image=images[-1])
     print('canvas objects after open image:',canvas.find_all())
 
-def open_image1():
+def open_image():
     global canvas, operand_image, cvimg, scissor_flag,  obj, draw_image, image_id, pil_img,last_w,last_h
     #clear any information about previous image
     #TODO check if there's anything else left to be cleaned up
@@ -127,9 +127,11 @@ def open_image1():
     pil_img = PILImage.open(file_name)
     last_w,last_h = pil_img.size
     operand_image = PILImageTk.PhotoImage(pil_img)
+    images.clear()
+    images.append(operand_image)
     #alternatively, open image directly with PILImageTk
     #image = PILImageTk.PhotoImage(file=file_name)
-    image_id = canvas.create_image(0,0, image=operand_image, anchor=NW, tags = 'operand_image')
+    image_id = canvas.create_image(0,0, image=images[-1], anchor=NW, tags = 'operand_image')
 
     #for draw contour with image
     draw_image = PILImageDraw.Draw(pil_img)
@@ -138,6 +140,7 @@ def open_image1():
 
     #get picture size and resize canvas window
     #canvas.configure(width=operand_image.width(), height=operand_image.height())
+    picture_display.config(image=images[-1])
     print('canvas objects after open image:',canvas.find_all())
 
 
@@ -403,7 +406,8 @@ def zoom_in(event):
     print ("zoom_in")
     last_w = int(last_w*1.1)
     last_h = int(last_h*1.1)
-    pil_img_resized = pil_img.resize((last_w,last_h),PILImage.ANTIALIAS)
+    #pil_img_resized = pil_img.resize((last_w,last_h),PILImage.ANTIALIAS)
+    pil_img_resized = pil_img.resize((last_w,last_h))
     images.clear()
     images.append(PILImageTk.PhotoImage(pil_img_resized))
     #canvas.delete('zoom_in')
@@ -477,7 +481,7 @@ def show_image_with_contour(event):
     print('canvas objects after show_image_with_contour:',canvas.find_all())
 
 def show_pixel_nodes(event):
-    global pixel_node_exist, pixel_nodes_img
+    global pixel_node_exist, pixel_nodes_img, pil_img
     if scissor_mode.get() != 'pixel_nodes':
         #if os.path.isfile(pixel_nodes_file_name):
         #    pass
@@ -500,19 +504,13 @@ def show_pixel_nodes(event):
             pixel_nodes_img_before = PILImage.fromarray((np.squeeze(obj.pixel_node)).astype(np.uint8))
             pixel_nodes_img_before.save(pixel_nodes_file_name)
             pixel_nodes_img = PILImage.open(pixel_nodes_file_name)
+            pil_img = pixel_nodes_img
             pixel_node_exist = True
-        zoomed_img = []
-        zoomed_img.append(PILImageTk.PhotoImage(pixel_nodes_img))
-        print('pixel_nodes',zoomed_img)
-        canvas_id = canvas.create_rectangle((10, 10, 30, 30), fill='red', tags=('palette','palettered', 'paletteSelected'))
-        canvas.delete('all')
-        image_id = canvas.create_image(0,0, image=zoomed_img[-1], anchor=NW, tags = 'zoom_in')
-        picture_display.config(image = zoomed_img[-1])
-        canvas_id = canvas.create_rectangle((10, 35, 30, 55), fill='green', tags=('palette','palettegreen'))
-        print('image id',image_id)
-        print('canvas id',canvas_id)
+        images.clear()
+        images.append(PILImageTk.PhotoImage(pixel_nodes_img))
+        canvas.itemconfig('operand_image', image = images[-1])
+        picture_display.config(image = images[-1])
         print('canvas objects before if ends in show_pixel_nodes:',canvas.find_all())
-        input('wait for key')
     print('canvas objects after if ends in show_pixel_nodes:',canvas.find_all())
 
 
@@ -719,28 +717,28 @@ root.grid_columnconfigure(0, weight=1)
 root.grid_rowconfigure(0, weight=1)
 
 #menu
-#menubar = tk.Menu(root)
-#file_menu = tk.Menu(menubar, tearoff = 0)
-#file_menu.add_command(label="Open Image", command = open_image)
-#file_menu.add_separator()
-#file_menu.add_command(label="Save Contour", command = save_contour)
-#file_menu.add_command(label="Save Mask", command = save_mask)
-#file_menu.add_separator()
-#file_menu.add_command(label="Exit", command = root.destroy)
-#menubar.add_cascade(label="File", menu=file_menu)
-#
-#tools_menu = tk.Menu(menubar, tearoff = 0)
-#tools_menu.add_command(label = "Scissor", command = create_scissor_window)
-#if brush_implemented == True:
-#    tools_menu.add_command(label = "Brush", command = create_brush_window)
-#menubar.add_cascade(label="Tools", menu=tools_menu)
-#
-#help_menu = tk.Menu(menubar, tearoff = 0)
-#help_menu.add_command(label = "Help", command = create_help_window)
-#help_menu.add_command(label = "About", command = create_about_window)
-#menubar.add_cascade(label="Help", menu=help_menu)
-#
-#root.configure(menu = menubar)
+menubar = tk.Menu(root)
+file_menu = tk.Menu(menubar, tearoff = 0)
+file_menu.add_command(label="Open Image", command = open_image)
+file_menu.add_separator()
+file_menu.add_command(label="Save Contour", command = save_contour)
+file_menu.add_command(label="Save Mask", command = save_mask)
+file_menu.add_separator()
+file_menu.add_command(label="Exit", command = root.destroy)
+menubar.add_cascade(label="File", menu=file_menu)
+
+tools_menu = tk.Menu(menubar, tearoff = 0)
+tools_menu.add_command(label = "Scissor", command = create_scissor_window)
+if brush_implemented == True:
+    tools_menu.add_command(label = "Brush", command = create_brush_window)
+menubar.add_cascade(label="Tools", menu=tools_menu)
+
+help_menu = tk.Menu(menubar, tearoff = 0)
+help_menu.add_command(label = "Help", command = create_help_window)
+help_menu.add_command(label = "About", command = create_about_window)
+menubar.add_cascade(label="Help", menu=help_menu)
+
+root.configure(menu = menubar)
 
 #frame
 mainframe = ttk.Frame(root,padding='3', borderwidth = '8')
@@ -770,64 +768,59 @@ v['command'] = canvas.yview
 h.grid(column=0, row=4, columnspan = 4, sticky=(tk.W,tk.E))
 v.grid(column=4, row=0, rowspan = 4,  sticky=(tk.N,tk.S))
 
-#button
-#button_open_image = ttk.Button(mainframe, text = 'open image', command = open_image).grid(column=5,row=0, sticky=(tk.E,tk.N))
-
 #size grip
-#ttk.Sizegrip(root).grid(column=1, row=1, sticky=(tk.S,tk.E))
-#
-##show cursor coornidate
-#cursor_label =ttk.Label(mainframe, text='x:0,y:0')
-#cursor_label.grid(column = 0, row = 5, sticky = (tk.W,tk.N))
-#canvas.bind('<Leave>', lambda e: cursor_label.configure(text='cursor outside canvas'))
-#
-##show other debug info
-#debug_label = ttk.Label(mainframe, text='<debug info>')
-#debug2_label = ttk.Label(mainframe, text='<debug2 info>')
-#debug3_label = ttk.Label(mainframe, text='<debug3 info>')
-#
-#
-#
-#stack_label = ttk.Label(mainframe, text='<stack info>', wraplength = wrap_length, justify = 'left')
-#
-#canvas_path_label = ttk.Label(mainframe, text='<canvas path info>', wraplength = wrap_length, justify = 'left')
-#canvas_path_stack_label = ttk.Label(mainframe, text='<canvas path stack info>', wraplength = wrap_length, justify = 'left')
-#
-#min_path_label = ttk.Label(mainframe, text='<min path info>', wraplength = wrap_length, justify = 'left')
-#history_paths_label = ttk.Label(mainframe, text='<history paths info>', wraplength = wrap_length, justify = 'left')
-#
-#if debug_setting == True:
-#    hover_mask_label = ttk.Label(mainframe, text='<hover_mask info>')
-#    debug_label.grid(column = 0, row = 9, sticky = (tk.W,tk.N))
-#    debug2_label.grid(column = 0, row = 6, sticky = (tk.W,tk.N))
-#    debug3_label.grid(column = 0, row = 7, sticky = (tk.W,tk.N))
-#    hover_mask_label.grid(column = 0, row = 8, sticky = (tk.W,tk.N))
-#    stack_label.grid(column = 0, row = 16, columnspan = 4, sticky = (tk.W,tk.N))
-#    canvas_path_label.grid(column = 0, row = 17, columnspan = 4, sticky = (tk.W,tk.N))
-#    canvas_path_stack_label.grid(column = 0, row = 18, columnspan = 4, sticky = (tk.W,tk.N))
-#    min_path_label.grid(column = 0, row = 19, columnspan = 4, sticky = (tk.W,tk.N))
-#    history_paths_label.grid(column = 0, row = 20, columnspan = 4, sticky = (tk.W,tk.N))
+ttk.Sizegrip(root).grid(column=1, row=1, sticky=(tk.S,tk.E))
+
+#show cursor coornidate
+cursor_label =ttk.Label(mainframe, text='x:0,y:0')
+cursor_label.grid(column = 0, row = 5, sticky = (tk.W,tk.N))
+canvas.bind('<Leave>', lambda e: cursor_label.configure(text='cursor outside canvas'))
+
+#show other debug info
+debug_label = ttk.Label(mainframe, text='<debug info>')
+debug2_label = ttk.Label(mainframe, text='<debug2 info>')
+debug3_label = ttk.Label(mainframe, text='<debug3 info>')
+
+
+
+stack_label = ttk.Label(mainframe, text='<stack info>', wraplength = wrap_length, justify = 'left')
+
+canvas_path_label = ttk.Label(mainframe, text='<canvas path info>', wraplength = wrap_length, justify = 'left')
+canvas_path_stack_label = ttk.Label(mainframe, text='<canvas path stack info>', wraplength = wrap_length, justify = 'left')
+
+min_path_label = ttk.Label(mainframe, text='<min path info>', wraplength = wrap_length, justify = 'left')
+history_paths_label = ttk.Label(mainframe, text='<history paths info>', wraplength = wrap_length, justify = 'left')
+
+if debug_setting == True:
+    hover_mask_label = ttk.Label(mainframe, text='<hover_mask info>')
+    debug_label.grid(column = 0, row = 9, sticky = (tk.W,tk.N))
+    debug2_label.grid(column = 0, row = 6, sticky = (tk.W,tk.N))
+    debug3_label.grid(column = 0, row = 7, sticky = (tk.W,tk.N))
+    hover_mask_label.grid(column = 0, row = 8, sticky = (tk.W,tk.N))
+    stack_label.grid(column = 0, row = 16, columnspan = 4, sticky = (tk.W,tk.N))
+    canvas_path_label.grid(column = 0, row = 17, columnspan = 4, sticky = (tk.W,tk.N))
+    canvas_path_stack_label.grid(column = 0, row = 18, columnspan = 4, sticky = (tk.W,tk.N))
+    min_path_label.grid(column = 0, row = 19, columnspan = 4, sticky = (tk.W,tk.N))
+    history_paths_label.grid(column = 0, row = 20, columnspan = 4, sticky = (tk.W,tk.N))
 
 picture_display = ttk.Label(root)
 picture_display.grid(column=0, row=5, columnspan = 4, rowspan = 4, sticky=(tk.N,tk.W,tk.E,tk.S))
 
 #Main function binding
-#canvas.bind('<Button-1>', click_xy)
-#canvas.bind('<Control-Button-1>', start)
-#root.bind('<Return>', finish)
-#root.bind('<BackSpace>', delete_path)
-#root.bind('<Delete>', clear_canvas)
-#root.bind('<Control-Return>', close_contour_finish)
-#root.bind('<Control-minus>', zoom_out)
-#root.bind('<Control-plus>', zoom_in)
-#root.bind('<Control-a>', path_to_coords)
-#canvas.bind('<Motion>', get_xy)
-#canvas.bind('<3>',lambda e : canvas.scan_mark(e.x, e.y))
-#canvas.bind('<B3-Motion>',lambda e: canvas.scan_dragto(e.x, e.y))
-canvas.bind('<Button-4>', zoom_in)
-canvas.bind('<Button-5>', zoom_out)
-#canvas.bind('<B1-Motion>', add_line)
-#canvas.bind('<B1-ButtonRelease>', done_stroke)
+canvas.bind('<Button-1>', click_xy)
+canvas.bind('<Control-Button-1>', start)
+root.bind('<Return>', finish)
+root.bind('<BackSpace>', delete_path)
+root.bind('<Delete>', clear_canvas)
+root.bind('<Control-Return>', close_contour_finish)
+root.bind('<Control-minus>', zoom_out)
+root.bind('<Control-plus>', zoom_in)
+root.bind('<Control-a>', path_to_coords)
+canvas.bind('<Motion>', get_xy)
+canvas.bind('<3>',lambda e : canvas.scan_mark(e.x, e.y))
+canvas.bind('<B3-Motion>',lambda e: canvas.scan_dragto(e.x, e.y))
+root.bind('<Button-4>', zoom_in)
+root.bind('<Button-5>', zoom_out)
 
 #TODO palette, should do with color chooser dialog
 #canvas_id = canvas.create_rectangle((10, 10, 30, 30), fill='red', tags=('palette','palettered', 'paletteSelected'))
