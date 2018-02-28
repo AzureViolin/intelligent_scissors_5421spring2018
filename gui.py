@@ -16,18 +16,15 @@ import os
 #Zoom in Zoom out
 #Show various debug pic
 #refacdtor canvas draw line
+
 focus_width = 5
 unfocus_width = 1
-
 highlight_id = []
-
 debug_setting = False
 brush_implemented = False
-
 path_tree_file_name = './output/path_tree.png'
 pixel_nodes_file_name = './output/pixel_nodes.png'
 cost_graph_file_name = './output/cost_graph.png'
-#Global variables shared between files
 #cursor_x, cursor_y holds current cursor coordinates
 cursor_x, cursor_y = 0, 0
 #point_stack saves all past clicks
@@ -69,6 +66,7 @@ about_window_exist = False
 #obj.generate_all_node_dict()
 #start_time = time.time()
 #print('node dict generation time:', time.time() - start_time)
+
 def delete_debug_pics():
     if os.path.isfile(path_tree_file_name):
         os.remove(path_tree_file_name)
@@ -82,15 +80,12 @@ def open_image_by_file(file_name,image_tag):
     image = PILImageTk.PhotoImage(pil_img)
     canvas.background = image
     image_id = canvas.create_image(0,0, image=image, anchor=NW, tags=(image_tag))
-    #get picture size and resize canvas window
     img_width, img_height = pil_img.size
     canvas.configure(width=img_width, height=img_height)
     return image_id
 
 def open_image():
     global canvas, operand_image, cvimg, scissor_flag,  obj, draw_image, image_id
-    #clear any information about previous image
-    #TODO check if there's anything else left to be cleaned up
     delete_debug_pics()
     create_scissor_window()
     close_scissor_window()
@@ -99,26 +94,19 @@ def open_image():
     canvas.delete('all')
     canvas_contour_stack.clear()
     history_contour.clear()
-    #TODO get current path
     file_name = filedialog.askopenfilename(initialdir = './images')
-    #open image with pillow and load into PILImageTk
     pil_img = PILImage.open(file_name)
     operand_image = PILImageTk.PhotoImage(pil_img)
-    #alternatively, open image directly with PILImageTk
     #image = PILImageTk.PhotoImage(file=file_name)
     image_id = canvas.create_image(0,0, image=operand_image, anchor=NW, tags = 'operand_image')
 
     #for draw contour with image
     draw_image = PILImageDraw.Draw(pil_img)
-
     obj = IntelligentScissor(np.array(pil_img))
-
     #get picture size and resize canvas window
     canvas.configure(width=operand_image.width(), height=operand_image.height())
 
-
 def seed_to_graph(seed_x,seed_y):
-    #global obj
     obj.update_seed((seed_x, seed_y))
     start_time = time.time()
     #print('cost_map_generation')
@@ -126,7 +114,6 @@ def seed_to_graph(seed_x,seed_y):
     #obj.path_tree_generation()
 
     print('cost map generation time:', time.time() - start_time)
-    #print('cost map generation COMPLETED')
 
 def live_wire_mode(flag):
     global scissor_flag
@@ -199,15 +186,15 @@ def click_xy(event):
     if scissor_flag == True and scissor_mode.get() == 'image_with_contour':
         x, y = canvas.canvasx(event.x), canvas.canvasy(event.y)
         set_color('green')
-        #fix current path on canvas, start new seed
+        # fix current path on canvas, start new seed
         canvas.itemconfigure(canvas_path,width =unfocus_width)
         min_path = obj.get_path((int(x),int(y)))
         history_paths.append(min_path[:])
         canvas_path_stack.append(canvas_path)
         canvas_path = -99
         i = i + 1
-        #canvas.delete(canvas_path)
-        #generate new graph with new seed
+        # canvas.delete(canvas_path)
+        # generate new graph with new seed
         seed_to_graph(x,y)
         last_x, last_y = x, y
         point_stack.append([x,y,canvas_id])
@@ -261,10 +248,6 @@ def delete_path(event):
 
     #update debug info
     show_debug(show = debug_setting)
-
-#def draw_line_image(path_):
-    # TODO draw path in canvas_path_stack to image and saved as contour
-#    pass
 
 def get_xy(event):
     global cursor_x, cursor_y, cursor_label, canvas_id, last_x, last_y, canvas_path, hovered_mask_idx, last_hovered_mask
