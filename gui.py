@@ -390,7 +390,7 @@ def set_color(newcolor):
 def save_contour():
     if scissor_flag==False:
         file_name = filedialog.asksaveasfilename(initialdir = './output',
-                filetypes = (("png files","*.png"), ("jpeg files","*.jpg")))
+                filetypes = (("ps files","*.ps"), ("jpeg files","*.jpg")))
         canvas.postscript(file=file_name, colormode='color')
     #return
 
