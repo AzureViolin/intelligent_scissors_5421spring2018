@@ -353,11 +353,11 @@ def draw_path(x,y,line_width):
 
 def zoom_in(event):
     global canvas
+    print ("zoom_in")
     for item in canvas.find_all():
         print (item)
         canvas.scale(item, 0,0,0.9,0.9)
     canvas.configure(3, 100,100)
-    print ("zoom_in")
 
 def zoom_out(event):
     print ("zoom_out")
@@ -721,8 +721,8 @@ canvas.bind('<Control-Button-1>', start)
 root.bind('<Return>', finish)
 root.bind('<BackSpace>', delete_path)
 root.bind('<Control-Return>', close_contour_finish)
-root.bind('<Control-a>', zoom_in)
-root.bind('<Control-z>', zoom_out)
+root.bind('<Control-plus>', zoom_in)
+root.bind('<Control-minus>', zoom_out)
 canvas.bind('<Motion>', get_xy)
 canvas.bind('<3>',lambda e : canvas.scan_mark(e.x, e.y))
 canvas.bind('<B3-Motion>',lambda e: canvas.scan_dragto(e.x, e.y))
