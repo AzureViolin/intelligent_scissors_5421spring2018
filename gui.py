@@ -16,8 +16,8 @@ import os
 #Zoom in Zoom out
 #Show various debug pic
 #refacdtor canvas draw line
-focus_width = 2
-unfocus_width = 1
+focus_width = 4
+unfocus_width = 2
 
 highlight_id = []
 
@@ -208,11 +208,12 @@ def click_xy(event):
     global last_x, last_y, scissor_flag, point_stack, canvas_id, canvas_path, canvas_path_stack, i, highlight_id, first_draw_path
     if scissor_flag == True and scissor_mode.get() == 'image_with_contour':
         x, y = canvas.canvasx(event.x), canvas.canvasy(event.y)
-        #set_color('green')
-        #fix current path on canvas, start new seed
-        canvas.itemconfigure(canvas_path,width =unfocus_width, color = 'green')
         min_path = obj.get_path((int(x),int(y)))
         history_paths.append(min_path[:])
+        #set_color('green')
+        #fix current path on canvas, start new seed
+        #canvas.itemconfigure(canvas_path,width =unfocus_width, color = 'green')
+        canvas.itemconfigure('draw_path',width =unfocus_width, fill = 'green')
         canvas_path_stack.append(canvas_path)
         canvas_path = -99
         i = i + 1
@@ -278,10 +279,6 @@ def delete_path(event):
 #    pass
 
 def get_xy(event):
-    cursor_x, cursor_y = canvas.canvasx(event.x), canvas.canvasy(event.y)
-    draw_path(cursor_x,cursor_y, line_width = focus_width)
-
-def get_xy1(event):
     global cursor_x, cursor_y, cursor_label, canvas_id, last_x, last_y, canvas_path, hovered_mask_idx, last_hovered_mask
     cursor_x, cursor_y = canvas.canvasx(event.x), canvas.canvasy(event.y)
     cursor_label.configure(text = 'x:{0} y:{1}'.format(cursor_x, cursor_y))
@@ -397,10 +394,11 @@ def zoom_in(event):
     pil_img_resized = pil_img.resize((last_w,last_h),PILImage.ANTIALIAS)
     zoomed_img = []
     zoomed_img.append(PILImageTk.PhotoImage(pil_img_resized))
-    canvas.delete('zoom_in')
-    canvas.delete('all')
-    image_id = canvas.create_image(0,0, image=zoomed_img[-1], anchor=NW, tags = 'zoom_in')
+    #canvas.delete('zoom_in')
+    #canvas.delete('all')
+    #image_id = canvas.create_image(0,0, image=zoomed_img[-1], anchor=NW, tags = 'zoom_in')
     #canvas.tag_lower('zoomed_img')
+    canvas.itemconfig('operand_image',image = zoomed_img[-1], anchor=NW)
     canvas.scale("all", event.x, event.y, 1.1, 1.1)
     print('canvas objects zoom in:',canvas.find_all())
     #canvas.configure(scrollregion = canvas.bbox("all"))
@@ -409,6 +407,7 @@ def zoom_in(event):
     #    print (item)
     #    canvas.scale(item, 0,0,0.9,0.9)
     #canvas.configure(3, 100,100)
+    #input('waitkey in zoom')
 
 def zoom_out(event):
     global pil_img, last_w, last_h
@@ -840,5 +839,7 @@ def close_root():
 print('canvas objects before start:',canvas.find_all())
 
 root.protocol('WM_DELETE_WINDOW', close_root)
+
+print ('before loop')
 root.mainloop()
 
