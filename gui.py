@@ -16,13 +16,14 @@ import os
 #Zoom in Zoom out
 #Show various debug pic
 #refacdtor canvas draw line
-focus_width = 5
+focus_width = 2
 unfocus_width = 1
 
 highlight_id = []
 
 debug_setting = False
 brush_implemented = False
+first_draw_path = True
 
 path_tree_file_name = './output/path_tree.png'
 pixel_nodes_file_name = './output/pixel_nodes.png'
@@ -60,6 +61,8 @@ brush_window_exist = False
 help_window_exist = False
 about_window_exist = False
 
+pixel_node_exist = False
+
 #scissor_mode = tk.StringVar()
 #scissor_mode.set('image_with_contour')
 #obj = IntelligentScissor(cvimg, (int(seed_x),int(seed_y)))
@@ -70,25 +73,31 @@ about_window_exist = False
 #start_time = time.time()
 #print('node dict generation time:', time.time() - start_time)
 def delete_debug_pics():
+    global pixel_node_exist
     if os.path.isfile(path_tree_file_name):
         os.remove(path_tree_file_name)
     if os.path.isfile(pixel_nodes_file_name):
         os.remove(pixel_nodes_file_name)
     if os.path.isfile(cost_graph_file_name):
         os.remove(cost_graph_file_name)
+    pixel_node_exist = False
 
 def open_image_by_file(file_name,image_tag):
+    global pil_img, last_w, last_h
     pil_img = PILImage.open(file_name)
-    image = PILImageTk.PhotoImage(pil_img)
-    canvas.background = image
-    image_id = canvas.create_image(0,0, image=image, anchor=NW, tags=(image_tag))
+    last_w,last_h = pil_img.size
+    images = []
+    images.append(PILImageTk.PhotoImage(pil_img))
+    #canvas.background = image
+    image_id = canvas.create_image(0,0, image=images[-1], anchor=NW, tags=(image_tag))
     #get picture size and resize canvas window
     img_width, img_height = pil_img.size
-    canvas.configure(width=img_width, height=img_height)
+    #canvas.configure(width=img_width, height=img_height)
+    print('canvas objects after open image by file:',canvas.find_all())
     return image_id
 
 def open_image():
-    global canvas, operand_image, cvimg, scissor_flag,  obj, draw_image, image_id
+    global canvas, operand_image, cvimg, scissor_flag,  obj, draw_image, image_id, pil_img,last_w,last_h
     #clear any information about previous image
     #TODO check if there's anything else left to be cleaned up
     delete_debug_pics()
@@ -103,6 +112,7 @@ def open_image():
     file_name = filedialog.askopenfilename(initialdir = './images')
     #open image with pillow and load into PILImageTk
     pil_img = PILImage.open(file_name)
+    last_w,last_h = pil_img.size
     operand_image = PILImageTk.PhotoImage(pil_img)
     #alternatively, open image directly with PILImageTk
     #image = PILImageTk.PhotoImage(file=file_name)
@@ -114,7 +124,8 @@ def open_image():
     obj = IntelligentScissor(np.array(pil_img))
 
     #get picture size and resize canvas window
-    canvas.configure(width=operand_image.width(), height=operand_image.height())
+    #canvas.configure(width=operand_image.width(), height=operand_image.height())
+    print('canvas objects after open image:',canvas.find_all())
 
 
 def seed_to_graph(seed_x,seed_y):
@@ -163,7 +174,6 @@ def close_contour_finish(event):
     global scissor_flag, canvas_id, canvas_path_stack, canvas_path, i, history_paths, finish_flag, obj, canvas_contour_stack
     print('close contour finish called')
     if scissor_flag == True:
-        #canvas_id = canvas.create_line((last_x, last_y, start_x, start_y), fill=color, width=1,tags='currentline')
         canvas.delete(canvas_path)
         draw_path(start_x,start_y, line_width = unfocus_width)
         canvas_path_stack.append(canvas_path)
@@ -195,12 +205,12 @@ def finish(event):
         obj.generate_mask(history_paths, close = False)
 
 def click_xy(event):
-    global last_x, last_y, scissor_flag, point_stack, canvas_id, canvas_path, canvas_path_stack, i, highlight_id
+    global last_x, last_y, scissor_flag, point_stack, canvas_id, canvas_path, canvas_path_stack, i, highlight_id, first_draw_path
     if scissor_flag == True and scissor_mode.get() == 'image_with_contour':
         x, y = canvas.canvasx(event.x), canvas.canvasy(event.y)
-        set_color('green')
+        #set_color('green')
         #fix current path on canvas, start new seed
-        canvas.itemconfigure(canvas_path,width =unfocus_width)
+        canvas.itemconfigure(canvas_path,width =unfocus_width, color = 'green')
         min_path = obj.get_path((int(x),int(y)))
         history_paths.append(min_path[:])
         canvas_path_stack.append(canvas_path)
@@ -213,6 +223,7 @@ def click_xy(event):
         point_stack.append([x,y,canvas_id])
         if os.path.isfile(path_tree_file_name):
             os.remove(path_tree_file_name)
+        first_draw_path = True
     elif scissor_flag == False:
         print('Nothing will happen even if you keep clicking mouse, since we are not in live wire mode yet.')
 
@@ -267,6 +278,10 @@ def delete_path(event):
 #    pass
 
 def get_xy(event):
+    cursor_x, cursor_y = canvas.canvasx(event.x), canvas.canvasy(event.y)
+    draw_path(cursor_x,cursor_y, line_width = focus_width)
+
+def get_xy1(event):
     global cursor_x, cursor_y, cursor_label, canvas_id, last_x, last_y, canvas_path, hovered_mask_idx, last_hovered_mask
     cursor_x, cursor_y = canvas.canvasx(event.x), canvas.canvasy(event.y)
     cursor_label.configure(text = 'x:{0} y:{1}'.format(cursor_x, cursor_y))
@@ -277,14 +292,14 @@ def get_xy(event):
     if scissor_mode.get() == 'minimum_path':
         if cursor_x < width*3-3 and cursor_y < height*3-3 and cursor_x > 3 and cursor_y > 3:
             canvas.delete(canvas_path)
-            draw_path_in_tree(cursor_x,cursor_y, line_width = focus_width)
+            draw_tree_path(cursor_x,cursor_y, line_width = focus_width)
         else:
             cursor_label.configure(text = 'cursor outside path tree image')
     elif cursor_x < width-1 and cursor_y < height-1 and cursor_x > 0 and cursor_y > 0:
         if scissor_flag == True:
             if scissor_mode.get() == 'image_with_contour':
                 #remove last path in canvas
-                canvas.delete(canvas_path)
+                #canvas.delete(canvas_path)
                 #draw new path on canvas
                 draw_path(cursor_x,cursor_y, line_width = focus_width)
             #in_path = obj.get_path((int(cursor_x),int(cursor_y)))
@@ -337,47 +352,79 @@ def remove_canvas_contour(canvas_path_to_be_removed):
         canvas.delete(line_id)
     #canvas_path_to_be_removed.clear()
 
-def draw_path_in_tree(x,y,line_width):
+def draw_tree_path(x,y,line_width):
     global cursor_label, canvas_id, last_x, last_y, canvas_path, min_path_label, min_path
     cursor_label.configure(text = 'getting path in tree for x:{0} y:{1}'.format(cursor_x, cursor_y))
     min_path = obj.get_path_from_tree((int(x),int(y)))
     set_color('red')
     min_path_len = len(min_path)
-    canvas_id = canvas.create_line(min_path, fill = color, width = line_width, tags = 'current_tree_line')
+    canvas_id = canvas.create_line(min_path, fill = color, width = line_width, tags = 'draw_tree_path')
     canvas_path = canvas_id
+    print('canvas objects after draw_tree_path:',canvas.find_all())
 
 def draw_path(x,y,line_width):
-    global cursor_label, canvas_id, last_x, last_y, canvas_path, min_path_label, min_path
-    cursor_label.configure(text = 'get path for x:{0} y:{1}'.format(cursor_x, cursor_y))
+    global cursor_label, canvas_id, last_x, last_y, canvas_path, min_path_label, min_path, first_draw_path
     min_path = obj.get_path((int(x),int(y)))
-    set_color('red')
-    min_path_len = len(min_path)
-    canvas_id = canvas.create_line(min_path, fill = color, width = line_width, tags = 'current_line')
-    canvas_path = canvas_id
-    #for index, point in enumerate(min_path):
-    #    if index < (min_path_len - 1):
-    #        next_point = min_path[index + 1]
-    #    else:
-    #        #print('reached last point, break for loop')
-    #        break
-        #canvas_id = canvas.create_line((point[0],point[1],next_point[0],next_point[1]), fill = color, width = line_width, tags = 'currentline')
-        #canvas_path.append(canvas_id)
+    color = 'red'
+    if first_draw_path == True:
+        canvas_id = canvas.create_line(min_path, fill = color, width = line_width, tags = 'draw_path')
+        first_draw_path = False
+    else:
+        canvas.coords('draw_path', path_to_coords(min_path))
+        canvas.itemconfigure('draw_path', fill = color, width = line_width)
+    #canvas_path = canvas_id
+    #canvas.tag_raise('draw_path')
+    print('canvas objects after draw_path:',canvas.find_all())
 
+def path_to_coords(path):
+    coords = []
+    for item in path:
+        coords.append(item[0])
+        coords.append(item[1])
+    return coords
 
-        #cursor_label.configure(text = 'getting path for x:{0} y:{1}'.format(cursor_x, cursor_y))
-        #path = obj.get_path((int(cursor_x),int(cursor_y)))
-        #print(path)
+def clear_canvas(event):
+    print("clear canvas")
+    canvas.delete('all')
+    print('canvas objects after clear_canvas:',canvas.find_all())
 
 def zoom_in(event):
-    global canvas
+    global pil_img, last_w, last_h
     print ("zoom_in")
-    for item in canvas.find_all():
-        print (item)
-        canvas.scale(item, 0,0,0.9,0.9)
-    canvas.configure(3, 100,100)
+    last_w = int(last_w*1.1)
+    last_h = int(last_h*1.1)
+    #print('lastw,lasth',last_w,last_h)
+    pil_img_resized = pil_img.resize((last_w,last_h),PILImage.ANTIALIAS)
+    zoomed_img = []
+    zoomed_img.append(PILImageTk.PhotoImage(pil_img_resized))
+    canvas.delete('zoom_in')
+    canvas.delete('all')
+    image_id = canvas.create_image(0,0, image=zoomed_img[-1], anchor=NW, tags = 'zoom_in')
+    #canvas.tag_lower('zoomed_img')
+    canvas.scale("all", event.x, event.y, 1.1, 1.1)
+    print('canvas objects zoom in:',canvas.find_all())
+    #canvas.configure(scrollregion = canvas.bbox("all"))
+
+    #for item in canvas.find_all():
+    #    print (item)
+    #    canvas.scale(item, 0,0,0.9,0.9)
+    #canvas.configure(3, 100,100)
 
 def zoom_out(event):
+    global pil_img, last_w, last_h
     print ("zoom_out")
+    last_w = int(last_w*0.9)
+    last_h = int(last_h*0.9)
+    pil_img_resized = pil_img.resize((last_w,last_h),PILImage.ANTIALIAS)
+    zoomed_img = []
+    zoomed_img.append(PILImageTk.PhotoImage(pil_img_resized))
+    canvas.delete('zoom_out')
+    canvas.delete('all')
+    image_id = canvas.create_image(0,0, image=zoomed_img[-1], anchor=NW, tags = 'zoom_out')
+    #canvas.tag_lower('zoomed_img')
+    canvas.scale("all", event.x, event.y, 0.9, 0.9)
+    print('canvas objects zoom out:',canvas.find_all())
+    #canvas.configure(scrollregion = canvas.bbox("all"))
 
 def set_color(newcolor):
     global color
@@ -400,44 +447,63 @@ def save_mask():
                 filetypes = (("png files","*.png"), ("jpeg files","*.jpg")))
         mask_image = PILImage.fromarray((obj.mask*255).astype(np.uint8))
         mask_image.save(save_file_name)
-        #input('mask saved, press enter to open mask')
-        #opened_mask = PILImage.open(save_file_name)
-        #print('================load pil image===============')
-        #print (pil_img1)
-        #mask_image_tk = PILImageTk.PhotoImage(opened_mask)
-        #mask_image_id = canvas.create_image(0,0, image=mask_image_tk, anchor=NW)
-        #open_image_by_file(file_name=save_file_name)
-        #print('mask image id : {0}'.format(mask_image_id))
-        #canvas.itemconfigure(image_id, image=mask_image_tk)
-        #input('canvas should be updated by now, press enter to continue')
 
 def show_image_only(event):
     canvas.delete('debug_image')
     canvas.delete('reopened_image')
-    image_id = canvas.create_image(0,0, image=operand_image, anchor=NW, tags = ('reopened_image'))
+    image_id = canvas.create_image(0,0, image=operand_image, anchor=NW, tags = ('show_image_only'))
     canvas.tag_raise(image_id)
     print('re opend image id:',image_id)
     canvas.configure(width=operand_image.width(), height=operand_image.height())
     return image_id
     #input('image should change now, enter to continue')
+    print('canvas objects after show_image_only:',canvas.find_all())
 
 def show_image_with_contour(event):
     image_id = show_image_only(event)
     canvas.delete('current_tree_line')
     canvas.tag_lower(image_id)
+    print('canvas objects after show_image_with_contour:',canvas.find_all())
 
 def show_pixel_nodes(event):
+    global pixel_node_exist, pixel_nodes_img
     if scissor_mode.get() != 'pixel_nodes':
-        if os.path.isfile(pixel_nodes_file_name):
+        #if os.path.isfile(pixel_nodes_file_name):
+        #    pass
+        #else:
+        #    print('......generating pixel_nodes......')
+        #    start_time = time.time()
+        #    obj.link_calculation()
+        #    print('pixel_nodes generation time:', time.time() - start_time)
+        #    pixel_nodes_img = PILImage.fromarray((np.squeeze(obj.pixel_node)).astype(np.uint8))
+        #    pixel_nodes_img.save(pixel_nodes_file_name)
+        #open_image_by_file(pixel_nodes_file_name, image_tag = 'debug_image')
+
+        if pixel_node_exist == True:
             pass
         else:
             print('......generating pixel_nodes......')
             start_time = time.time()
             obj.link_calculation()
             print('pixel_nodes generation time:', time.time() - start_time)
-            pixel_nodes_img = PILImage.fromarray((np.squeeze(obj.pixel_node)).astype(np.uint8))
-            pixel_nodes_img.save(pixel_nodes_file_name)
-        open_image_by_file(pixel_nodes_file_name, image_tag = 'debug_image')
+            pixel_nodes_img_before = PILImage.fromarray((np.squeeze(obj.pixel_node)).astype(np.uint8))
+            pixel_nodes_img_before.save(pixel_nodes_file_name)
+            pixel_nodes_img = PILImage.open(pixel_nodes_file_name)
+            pixel_node_exist = True
+        zoomed_img = []
+        zoomed_img.append(PILImageTk.PhotoImage(pixel_nodes_img))
+        print('pixel_nodes',zoomed_img)
+        canvas_id = canvas.create_rectangle((10, 10, 30, 30), fill='red', tags=('palette','palettered', 'paletteSelected'))
+        canvas.delete('all')
+        image_id = canvas.create_image(0,0, image=zoomed_img[-1], anchor=NW, tags = 'zoom_in')
+        picture_display.config(image = zoomed_img[-1])
+        canvas_id = canvas.create_rectangle((10, 35, 30, 55), fill='green', tags=('palette','palettegreen'))
+        print('image id',image_id)
+        print('canvas id',canvas_id)
+        print('canvas objects before if ends in show_pixel_nodes:',canvas.find_all())
+        input('wait for key')
+    print('canvas objects after if ends in show_pixel_nodes:',canvas.find_all())
+
 
 def show_cost_graph(event):
     if scissor_mode.get() != 'cost_graph':
@@ -731,28 +797,34 @@ if debug_setting == True:
     min_path_label.grid(column = 0, row = 19, columnspan = 4, sticky = (tk.W,tk.N))
     history_paths_label.grid(column = 0, row = 20, columnspan = 4, sticky = (tk.W,tk.N))
 
+picture_display = ttk.Label(root)
+picture_display.grid(column=0, row=7, columnspan = 4, rowspan = 4, sticky=(tk.N,tk.W,tk.E,tk.S))
 
 #Main function binding
 canvas.bind('<Button-1>', click_xy)
 canvas.bind('<Control-Button-1>', start)
 root.bind('<Return>', finish)
 root.bind('<BackSpace>', delete_path)
+root.bind('<Delete>', clear_canvas)
 root.bind('<Control-Return>', close_contour_finish)
 root.bind('<Control-plus>', zoom_in)
 root.bind('<Control-minus>', zoom_out)
+root.bind('<Control-a>', path_to_coords)
 canvas.bind('<Motion>', get_xy)
 canvas.bind('<3>',lambda e : canvas.scan_mark(e.x, e.y))
 canvas.bind('<B3-Motion>',lambda e: canvas.scan_dragto(e.x, e.y))
+canvas.bind('<Button-4>', zoom_in)
+canvas.bind('<Button-5>', zoom_out)
 #canvas.bind('<B1-Motion>', add_line)
 #canvas.bind('<B1-ButtonRelease>', done_stroke)
 
 #TODO palette, should do with color chooser dialog
-canvas_id = canvas.create_rectangle((10, 10, 30, 30), fill='red', tags=('palette','palettered', 'paletteSelected'))
-canvas.tag_bind(canvas_id, '<Button-1>', lambda x: set_color('red'))
-canvas_id = canvas.create_rectangle((10, 35, 30, 55), fill='green', tags=('palette','palettegreen'))
-canvas.tag_bind(canvas_id, '<Button-1>', lambda x: set_color('green'))
-set_color('green')
-canvas.itemconfigure('palette', width=5)
+#canvas_id = canvas.create_rectangle((10, 10, 30, 30), fill='red', tags=('palette','palettered', 'paletteSelected'))
+#canvas.tag_bind(canvas_id, '<Button-1>', lambda x: set_color('red'))
+#canvas_id = canvas.create_rectangle((10, 35, 30, 55), fill='green', tags=('palette','palettegreen'))
+#canvas.tag_bind(canvas_id, '<Button-1>', lambda x: set_color('green'))
+#set_color('green')
+#canvas.itemconfigure('palette', width=5)
 
 open_image()
 create_scissor_window()
@@ -764,6 +836,8 @@ def close_root():
     print('close root window')
     delete_debug_pics()
     root.destroy()
+
+print('canvas objects before start:',canvas.find_all())
 
 root.protocol('WM_DELETE_WINDOW', close_root)
 root.mainloop()
