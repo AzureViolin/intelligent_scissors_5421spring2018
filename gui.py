@@ -21,7 +21,7 @@ unfocus_width = 2
 
 highlight_id = []
 
-debug_setting = False
+debug_setting = True
 brush_implemented = False
 first_draw_path = True
 images = []
@@ -41,7 +41,7 @@ min_path = []
 canvas_contour_stack = []
 history_paths = []
 history_contour = []
-contour_idx = None
+contour_idx = 0
 hovered_mask_idx = -1
 last_hovered_mask = -1
 
@@ -187,12 +187,13 @@ def start(event):
         print('Warning: Initial seed only works in image with contour mode')
 
 def close_contour_finish(event):
-    global scissor_flag, canvas_id, canvas_path_stack, canvas_path, i, history_paths, finish_flag, obj, canvas_contour_stack
+    global scissor_flag, canvas_id, canvas_path_stack, canvas_path, i, history_paths, finish_flag, obj, canvas_contour_stack, first_draw_path
     print('close contour finish called')
     if scissor_flag == True:
         canvas.delete(canvas_path)
+        first_draw_path = True
         draw_path(start_x,start_y, line_width = unfocus_width)
-        canvas_path_stack.append(canvas_path)
+        canvas_path_stack.append('drawn_path')
         canvas_contour_stack.append(canvas_path_stack[:])
         min_path = obj.get_path((int(start_x),int(start_y)))
         history_paths.append(min_path[:])
@@ -213,7 +214,7 @@ def finish(event):
     if scissor_flag == True:
         print('finish called while contour is still open')
         live_wire_mode(False)
-        canvas.delete(canvas_path)
+        #canvas.delete('drawing_path')
         canvas_contour_stack.append(canvas_path_stack[:])
         min_path = obj.get_path((int(start_x),int(start_y)))
         history_paths.append(min_path[:])
@@ -221,16 +222,16 @@ def finish(event):
         obj.generate_mask(history_paths, close = False)
 
 def click_xy(event):
-    global last_x, last_y, scissor_flag, point_stack, canvas_id, canvas_path, canvas_path_stack, i, highlight_id, first_draw_path
+    global last_x, last_y, scissor_flag, point_stack, canvas_id, canvas_path, canvas_path_stack, i, highlight_id, first_draw_path, path_id
     if scissor_flag == True and scissor_mode.get() == 'image_with_contour':
         x, y = canvas.canvasx(event.x), canvas.canvasy(event.y)
-        min_path = obj.get_path((int(x),int(y)))
+        #TODO TODO TODO uncomment min_path
+        #min_path = obj.get_path((int(x),int(y)))
         history_paths.append(min_path[:])
-        #set_color('green')
         #fix current path on canvas, start new seed
-        #canvas.itemconfigure(canvas_path,width =unfocus_width, color = 'green')
-        canvas.itemconfigure('draw_path',width =unfocus_width, fill = 'green')
-        canvas_path_stack.append(canvas_path)
+        canvas.itemconfig('drawing_path',width =unfocus_width, fill = 'red', tags = 'contour'+str(contour_cnt))
+        first_draw_path = True
+        canvas_path_stack.append(path_id)
         canvas_path = -99
         i = i + 1
         #canvas.delete(canvas_path)
@@ -240,7 +241,6 @@ def click_xy(event):
         point_stack.append([x,y,canvas_id])
         if os.path.isfile(path_tree_file_name):
             os.remove(path_tree_file_name)
-        first_draw_path = True
     elif scissor_flag == False:
         print('Nothing will happen even if you keep clicking mouse, since we are not in live wire mode yet.')
 
@@ -298,10 +298,8 @@ def get_xy(event):
     global cursor_x, cursor_y, cursor_label, canvas_id, last_x, last_y, canvas_path, hovered_mask_idx, last_hovered_mask
     cursor_x, cursor_y = canvas.canvasx(event.x), canvas.canvasy(event.y)
     cursor_label.configure(text = 'x:{0} y:{1}'.format(cursor_x, cursor_y))
-    #print(cursor_x, cursor_y)
     width = operand_image.width()
     height = operand_image.height()
-    #if scissor_mode.get() == 'minimum_path' and scissor_flag == True:
     if scissor_mode.get() == 'minimum_path':
         if cursor_x < width*3-3 and cursor_y < height*3-3 and cursor_x > 3 and cursor_y > 3:
             canvas.delete(canvas_path)
@@ -311,12 +309,8 @@ def get_xy(event):
     elif cursor_x < width-1 and cursor_y < height-1 and cursor_x > 0 and cursor_y > 0:
         if scissor_flag == True:
             if scissor_mode.get() == 'image_with_contour':
-                #remove last path in canvas
-                #canvas.delete(canvas_path)
                 #draw new path on canvas
                 draw_path(cursor_x,cursor_y, line_width = focus_width)
-            #in_path = obj.get_path((int(cursor_x),int(cursor_y)))
-            #min_path_label.configure(text = 'current canvas_path: {1}'.format(i,canvas_path))
         else:
             if len(obj.contour_mask_list) == 0:
                 pass
@@ -329,7 +323,6 @@ def get_xy(event):
                     last_hovered_mask = hovered_mask_idx
     else:
         cursor_label.configure(text = 'cursor outside image')
-
     show_debug(show = debug_setting)
 
 def show_debug(show):
@@ -356,8 +349,7 @@ def show_debug(show):
 
 def highlight_contour(contour,width,color):
     for line_id in contour:
-        #canvas.itemconfigure(line_id,width = width, color = color)
-        canvas.itemconfigure(line_id,width = width, fill = color)
+        canvas.itemconfig(line_id,width = width, fill = color)
 
 def remove_canvas_contour(canvas_path_to_be_removed):
     canvas_path_len = len(canvas_path_to_be_removed)
@@ -376,18 +368,16 @@ def draw_tree_path(x,y,line_width):
     print('canvas objects after draw_tree_path:',canvas.find_all())
 
 def draw_path(x,y,line_width):
-    global cursor_label, canvas_id, last_x, last_y, canvas_path, min_path_label, min_path, first_draw_path
+    global path_id, min_path, first_draw_path
     min_path = obj.get_path((int(x),int(y)))
     color = 'red'
     if first_draw_path == True:
-        canvas_id = canvas.create_line(min_path, fill = color, width = line_width, tags = 'draw_path')
+        path_id = canvas.create_line(min_path, fill = color, width = line_width, tags = 'drawing_path')
         first_draw_path = False
     else:
-        canvas.coords('draw_path', path_to_coords(min_path))
-        canvas.itemconfigure('draw_path', fill = color, width = line_width)
-    #canvas_path = canvas_id
-    #canvas.tag_raise('draw_path')
-    print('canvas objects after draw_path:',canvas.find_all())
+        canvas.coords('drawing_path', path_to_coords(min_path))
+        canvas.itemconfigure('drawing_path', fill = color, width = line_width)
+    print('canvas objects after drawing_path:',canvas.find_all())
 
 def path_to_coords(path):
     coords = []
@@ -831,11 +821,6 @@ root.bind('<Button-5>', zoom_out)
 #canvas.itemconfigure('palette', width=5)
 
 open_image()
-#create_scissor_window()
-#close_scissor_window()
-#scissor_mode.set('image_with_contour')
-#
-#
 #def close_root():
 #    print('close root window')
 #    delete_debug_pics()
