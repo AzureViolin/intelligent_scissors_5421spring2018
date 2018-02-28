@@ -109,7 +109,8 @@ tags
 ipython
 *.ipynb
 *ipynb*
+5421_web
 
-output
+ooutput
 #!images/
 #images/*.png
