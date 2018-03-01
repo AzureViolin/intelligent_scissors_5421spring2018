@@ -60,7 +60,9 @@ brush_window_exist = False
 help_window_exist = False
 about_window_exist = False
 
-pixel_node_exist = False
+pixel_nodes_exist = False
+cost_graph_exist = False
+path_tree_exist = False
 
 #scissor_mode = tk.StringVar()
 #scissor_mode.set('image_with_contour')
@@ -73,14 +75,16 @@ pixel_node_exist = False
 #print('node dict generation time:', time.time() - start_time)
 
 def delete_debug_pics():
-    global pixel_node_exist
+    global pixel_nodes_exist,cost_graph_exist,path_tree_exist
     if os.path.isfile(path_tree_file_name):
         os.remove(path_tree_file_name)
     if os.path.isfile(pixel_nodes_file_name):
         os.remove(pixel_nodes_file_name)
     if os.path.isfile(cost_graph_file_name):
         os.remove(cost_graph_file_name)
-    pixel_node_exist = False
+    pixel_nodes_exist = False
+    cost_graph_exist = False
+    path_tree_exist = False
 
 def open_image_by_file(file_name,image_tag):
     pil_img = PILImage.open(file_name)
@@ -138,11 +142,13 @@ def live_wire_mode(flag):
         canvas.configure(cursor = 'left_ptr')
 
 def start(event):
-    global last_x, last_y, start_x, start_y, scissor_flag, point_stack, finish_flag
+    global last_x, last_y, start_x, start_y, scissor_flag, point_stack, finish_flag, path_tree_exist
     if scissor_mode.get() == 'image_with_contour':
         if scissor_flag == False:
             if os.path.isfile(path_tree_file_name):
                 os.remove(path_tree_file_name)
+            if path_tree_exist == True:
+                path_tree_exist = False
             live_wire_mode(True)
             start_x, start_y = canvas.canvasx(event.x), canvas.canvasy(event.y)
             last_x, last_y = start_x, start_y
@@ -195,7 +201,7 @@ def finish(event):
         obj.generate_mask(history_paths, close = False)
 
 def click_xy(event):
-    global last_x, last_y, scissor_flag, point_stack, canvas_id, canvas_path, canvas_path_stack, i, highlight_id
+    global last_x, last_y, scissor_flag, point_stack, canvas_id, canvas_path, canvas_path_stack, i, highlight_id, path_tree_exist
     if scissor_flag == True and scissor_mode.get() == 'image_with_contour':
         x, y = canvas.canvasx(event.x), canvas.canvasy(event.y)
         set_color('green')
@@ -213,6 +219,8 @@ def click_xy(event):
         point_stack.append([x,y,canvas_id])
         if os.path.isfile(path_tree_file_name):
             os.remove(path_tree_file_name)
+        if path_tree_exist == True:
+            path_tree_exist = False
     elif scissor_flag == False:
         print('Nothing will happen even if you keep clicking mouse, since we are not in live wire mode yet.')
 
@@ -385,6 +393,7 @@ def zoom_in(event):
         #canvas.scale("all", event.x, event.y, 1.1, 1.1)
         print('canvas objects zoom in:',canvas.find_all())
         #canvas.configure(scrollregion = canvas.bbox("all"))
+        canvas.configure(width=last_w, height=last_h)
     else:
         print('can only zoom in image_only mode')
 
@@ -410,6 +419,7 @@ def zoom_out(event):
         #canvas.scale("all", event.x, event.y, 0.9, 0.9)
         print('canvas objects zoom out:',canvas.find_all())
         #canvas.configure(scrollregion = canvas.bbox("all"))
+        canvas.configure(width=last_w, height=last_h)
     else:
         print('can only zoom in image_only mode')
 
@@ -466,10 +476,10 @@ def show_image_with_contour(event):
     canvas.tag_lower('operand_image')
 
 def show_pixel_nodes(event):
-    global pixel_node_exist, pixel_nodes_img, pil_img
+    global pixel_nodes_exist, pixel_nodes_img
     if scissor_mode.get() != 'pixel_nodes':
         #if os.path.isfile(pixel_nodes_file_name):
-        if pixel_node_exist == True:
+        if pixel_nodes_exist == True:
             pass
         else:
             print('......generating pixel_nodes......')
@@ -480,7 +490,7 @@ def show_pixel_nodes(event):
             pixel_nodes_img_before.save(pixel_nodes_file_name)
             pixel_nodes_img = PILImage.open(pixel_nodes_file_name)
             #pil_img = pixel_nodes_img
-            pixel_node_exist = True
+            pixel_nodes_exist = True
         images.clear()
         images.append(PILImageTk.PhotoImage(pixel_nodes_img))
         canvas.itemconfig('operand_image', image = images[-1])
@@ -491,8 +501,10 @@ def show_pixel_nodes(event):
 
 
 def show_cost_graph(event):
+    global cost_graph_exist, cost_graph_img
     if scissor_mode.get() != 'cost_graph':
-        if os.path.isfile(cost_graph_file_name):
+        #if os.path.isfile(cost_graph_file_name):
+        if cost_graph_exist == True:
             pass
         else:
             print('......generating cost_graph......')
@@ -500,14 +512,25 @@ def show_cost_graph(event):
             obj.link_calculation()
             print('cost_graph generation time:', time.time() - start_time)
             print ('cost graph shape and dtype:',obj.cost_graph.shape, obj.cost_graph.dtype)
-            cost_graph_img = PILImage.fromarray(np.squeeze(obj.cost_graph).astype(np.uint8))
-            cost_graph_img.save(cost_graph_file_name)
-        open_image_by_file(cost_graph_file_name, image_tag = 'debug_image')
+            cost_graph_img_before = PILImage.fromarray(np.squeeze(obj.cost_graph).astype(np.uint8))
+            cost_graph_img_before.save(cost_graph_file_name)
+            cost_graph_img = PILImage.open(cost_graph_file_name)
+            cost_graph_exist = True
+        #open_image_by_file(cost_graph_file_name, image_tag = 'debug_image')
+        images.clear()
+        images.append(PILImageTk.PhotoImage(cost_graph_img))
+        canvas.itemconfig('operand_image', image = images[-1])
+        canvas.tag_raise('operand_image')
+        picture_display.config(image = images[-1])
+        print('canvas objects before if ends in show_cost_graph:',canvas.find_all())
+    print('canvas objects after if ends in show_cost_graph:',canvas.find_all())
+
 
 def show_path_tree(event):
-    global path_tree_id
+    global path_tree_id,path_tree_exist,path_tree_img
     if scissor_mode.get() != 'minimum_path' and scissor_mode.get() != 'path_tree':
-        if os.path.isfile(path_tree_file_name):
+        #if os.path.isfile(path_tree_file_name):
+        if path_tree_exist == True:
             pass
         else:
             print('......generating path tree......')
@@ -515,11 +538,19 @@ def show_path_tree(event):
             obj.path_tree_generation()
             print('path_tree generation time:', time.time() - start_time)
             #path_tree_img = PILImage.fromarray((obj.path_tree*255).astype(np.uint8))
-            path_tree_img = PILImage.fromarray((obj.path_tree))
-            path_tree_img.save(path_tree_file_name)
-        path_tree_id = open_image_by_file(path_tree_file_name, image_tag = 'debug_image')
+            path_tree_img_before = PILImage.fromarray((obj.path_tree))
+            path_tree_img_before.save(path_tree_file_name)
+            path_tree_img = PILImage.open(path_tree_file_name)
+            path_tree_exist = True
+        #path_tree_id = open_image_by_file(path_tree_file_name, image_tag = 'debug_image')
+        images.clear()
+        images.append(PILImageTk.PhotoImage(path_tree_img))
+        canvas.itemconfig('operand_image', image = images[-1])
+        canvas.tag_raise('operand_image')
+        picture_display.config(image = images[-1])
+        print('canvas objects before if ends in show_path_tree:',canvas.find_all())
     else:
-        canvas.tag_raise(path_tree_id)
+        canvas.tag_raise('operand_image')
 
 def show_minimum_path(event):
     if scissor_mode.get() != 'minimum_path' and scissor_mode.get() != 'path_tree':
@@ -785,7 +816,7 @@ if debug_setting == True:
     canvas_objects_label.grid(column = 0, row = 25, columnspan = 4, sticky = (tk.W,tk.N))
 
 picture_display = ttk.Label(root)
-picture_display.grid(column=0, row=5, columnspan = 4, rowspan = 4, sticky=(tk.N,tk.W,tk.E,tk.S))
+#picture_display.grid(column=0, row=5, columnspan = 4, rowspan = 4, sticky=(tk.N,tk.W,tk.E,tk.S))
 
 #Main function binding
 canvas.bind('<Button-1>', click_xy)
