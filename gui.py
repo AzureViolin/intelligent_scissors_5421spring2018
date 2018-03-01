@@ -367,22 +367,26 @@ def draw_path(x,y,line_width):
 
 def zoom_in(event):
     global pil_img, last_w, last_h
-    print ("zoom_in")
-    last_w = int(last_w*1.1)
-    last_h = int(last_h*1.1)
-    #pil_img_resized = pil_img.resize((last_w,last_h),PILImage.ANTIALIAS)
-    pil_img_resized = pil_img.resize((last_w,last_h))
-    images.clear()
-    images.append(PILImageTk.PhotoImage(pil_img_resized))
-    #canvas.delete('zoom_in')
-    #canvas.delete('all')
-    #image_id = canvas.create_image(0,0, image=zoomed_img[-1], anchor=NW, tags = 'zoom_in')
-    #canvas.tag_lower('zoomed_img')
-    picture_display.config(image=images[-1])
-    canvas.itemconfig('operand_image',image = images[-1])
-    #canvas.scale("all", event.x, event.y, 1.1, 1.1)
-    print('canvas objects zoom in:',canvas.find_all())
-    #canvas.configure(scrollregion = canvas.bbox("all"))
+    #if scissor_mode.get()!='image_with_contour' and scissor_mode.get()!='minimum_path':
+    if scissor_mode.get()=='image_only':
+        print ("zoom_in")
+        last_w = int(last_w*1.1)
+        last_h = int(last_h*1.1)
+        #pil_img_resized = pil_img.resize((last_w,last_h),PILImage.ANTIALIAS)
+        pil_img_resized = pil_img.resize((last_w,last_h))
+        images.clear()
+        images.append(PILImageTk.PhotoImage(pil_img_resized))
+        #canvas.delete('zoom_in')
+        #canvas.delete('all')
+        #image_id = canvas.create_image(0,0, image=zoomed_img[-1], anchor=NW, tags = 'zoom_in')
+        #canvas.tag_lower('zoomed_img')
+        picture_display.config(image=images[-1])
+        canvas.itemconfig('operand_image',image = images[-1])
+        #canvas.scale("all", event.x, event.y, 1.1, 1.1)
+        print('canvas objects zoom in:',canvas.find_all())
+        #canvas.configure(scrollregion = canvas.bbox("all"))
+    else:
+        print('can only zoom in image_only mode')
 
     #for item in canvas.find_all():
     #    print (item)
@@ -392,18 +396,22 @@ def zoom_in(event):
 
 def zoom_out(event):
     global pil_img, last_w, last_h
-    print ("zoom_out")
-    last_w = int(last_w*0.9)
-    last_h = int(last_h*0.9)
-    pil_img_resized = pil_img.resize((last_w,last_h),PILImage.ANTIALIAS)
-    images.clear()
-    images.append(PILImageTk.PhotoImage(pil_img_resized))
-    picture_display.config(image=images[-1])
-    canvas.itemconfig('operand_image', image = images[-1])
-    #canvas.tag_lower('zoomed_img')
-    #canvas.scale("all", event.x, event.y, 0.9, 0.9)
-    print('canvas objects zoom out:',canvas.find_all())
-    #canvas.configure(scrollregion = canvas.bbox("all"))
+    #if scissor_mode.get()!='image_with_contour' and scissor_mode.get()!='minimum_path':
+    if scissor_mode.get()=='image_only':
+        print ("zoom_out")
+        last_w = int(last_w*0.9)
+        last_h = int(last_h*0.9)
+        pil_img_resized = pil_img.resize((last_w,last_h),PILImage.ANTIALIAS)
+        images.clear()
+        images.append(PILImageTk.PhotoImage(pil_img_resized))
+        picture_display.config(image=images[-1])
+        canvas.itemconfig('operand_image', image = images[-1])
+        #canvas.tag_lower('zoomed_img')
+        #canvas.scale("all", event.x, event.y, 0.9, 0.9)
+        print('canvas objects zoom out:',canvas.find_all())
+        #canvas.configure(scrollregion = canvas.bbox("all"))
+    else:
+        print('can only zoom in image_only mode')
 
 def set_color(newcolor):
     global color
@@ -438,19 +446,24 @@ def save_mask():
         #input('canvas should be updated by now, press enter to continue')
 
 def show_image_only(event):
-    canvas.delete('debug_image')
-    canvas.delete('reopened_image')
-    image_id = canvas.create_image(0,0, image=operand_image, anchor=NW, tags = ('reopened_image'))
-    canvas.tag_raise(image_id)
-    print('re opend image id:',image_id)
-    canvas.configure(width=operand_image.width(), height=operand_image.height())
-    return image_id
+    #canvas.delete('debug_image')
+    #canvas.delete('reopened_image')
+    #image_id = canvas.create_image(0,0, image=operand_image, anchor=NW, tags = ('reopened_image'))
+    #canvas.tag_raise(image_id)
+    images.clear()
+    images.append(PILImageTk.PhotoImage(pil_img))
+    canvas.itemconfig('operand_image', image = images[-1])
+    canvas.tag_raise('operand_image')
+    picture_display.config(image = images[-1])
+    #print('re opend image id:',image_id)
+    #canvas.configure(width=operand_image.width(), height=operand_image.height())
+    #return image_id
     #input('image should change now, enter to continue')
 
 def show_image_with_contour(event):
     image_id = show_image_only(event)
     canvas.delete('current_tree_line')
-    canvas.tag_lower(image_id)
+    canvas.tag_lower('operand_image')
 
 def show_pixel_nodes(event):
     global pixel_node_exist, pixel_nodes_img, pil_img
@@ -466,11 +479,12 @@ def show_pixel_nodes(event):
             pixel_nodes_img_before = PILImage.fromarray((np.squeeze(obj.pixel_node)).astype(np.uint8))
             pixel_nodes_img_before.save(pixel_nodes_file_name)
             pixel_nodes_img = PILImage.open(pixel_nodes_file_name)
-            pil_img = pixel_nodes_img
+            #pil_img = pixel_nodes_img
             pixel_node_exist = True
         images.clear()
         images.append(PILImageTk.PhotoImage(pixel_nodes_img))
         canvas.itemconfig('operand_image', image = images[-1])
+        canvas.tag_raise('operand_image')
         picture_display.config(image = images[-1])
         print('canvas objects before if ends in show_pixel_nodes:',canvas.find_all())
     print('canvas objects after if ends in show_pixel_nodes:',canvas.find_all())
