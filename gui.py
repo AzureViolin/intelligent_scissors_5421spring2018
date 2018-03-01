@@ -16,12 +16,15 @@ import os
 #Zoom in Zoom out
 #Show various debug pic
 #refacdtor canvas draw line
+focus_width = 4
+unfocus_width = 2
 
-focus_width = 5
-unfocus_width = 1
 highlight_id = []
 debug_setting = False
 brush_implemented = False
+first_draw_path = True
+images = []
+
 path_tree_file_name = './output/path_tree.png'
 pixel_nodes_file_name = './output/pixel_nodes.png'
 cost_graph_file_name = './output/cost_graph.png'
@@ -36,7 +39,7 @@ min_path = []
 canvas_contour_stack = []
 history_paths = []
 history_contour = []
-contour_idx = None
+contour_idx = 0
 hovered_mask_idx = -1
 last_hovered_mask = -1
 
@@ -57,6 +60,8 @@ brush_window_exist = False
 help_window_exist = False
 about_window_exist = False
 
+pixel_node_exist = False
+
 #scissor_mode = tk.StringVar()
 #scissor_mode.set('image_with_contour')
 #obj = IntelligentScissor(cvimg, (int(seed_x),int(seed_y)))
@@ -68,12 +73,14 @@ about_window_exist = False
 #print('node dict generation time:', time.time() - start_time)
 
 def delete_debug_pics():
+    global pixel_node_exist
     if os.path.isfile(path_tree_file_name):
         os.remove(path_tree_file_name)
     if os.path.isfile(pixel_nodes_file_name):
         os.remove(pixel_nodes_file_name)
     if os.path.isfile(cost_graph_file_name):
         os.remove(cost_graph_file_name)
+    pixel_node_exist = False
 
 def open_image_by_file(file_name,image_tag):
     pil_img = PILImage.open(file_name)
@@ -85,7 +92,8 @@ def open_image_by_file(file_name,image_tag):
     return image_id
 
 def open_image():
-    global canvas, operand_image, cvimg, scissor_flag,  obj, draw_image, image_id
+    global canvas, operand_image, cvimg, scissor_flag,  obj, draw_image, image_id, pil_img,last_w,last_h
+
     delete_debug_pics()
     create_scissor_window()
     close_scissor_window()
@@ -96,15 +104,20 @@ def open_image():
     history_contour.clear()
     file_name = filedialog.askopenfilename(initialdir = './images')
     pil_img = PILImage.open(file_name)
+    last_w,last_h = pil_img.size
     operand_image = PILImageTk.PhotoImage(pil_img)
+    images.clear()
+    images.append(operand_image)
     #image = PILImageTk.PhotoImage(file=file_name)
-    image_id = canvas.create_image(0,0, image=operand_image, anchor=NW, tags = 'operand_image')
+    image_id = canvas.create_image(0,0, image=images[-1], anchor=NW, tags = 'operand_image')
 
     #for draw contour with image
     draw_image = PILImageDraw.Draw(pil_img)
     obj = IntelligentScissor(np.array(pil_img))
     #get picture size and resize canvas window
-    canvas.configure(width=operand_image.width(), height=operand_image.height())
+    #canvas.configure(width=operand_image.width(), height=operand_image.height())
+    picture_display.config(image=images[-1])
+    print('canvas objects after open image:',canvas.find_all())
 
 def seed_to_graph(seed_x,seed_y):
     obj.update_seed((seed_x, seed_y))
@@ -303,6 +316,7 @@ def show_debug(show):
         #history_paths_label.configure(text='path_stack after pop: {1}'.format(i, history_paths))
         canvas_path_label.configure(text = '{0}th canvas path: {1}'.format(i,canvas_path))
         canvas_path_stack_label.configure(text='canvas path stack after {0}th append: {1}'.format(i, canvas_path_stack))
+        canvas_objects_label.configure(text='canvas objects:{0}'.format(canvas.find_all()))
 
     if scissor_flag == True:
         pass
@@ -352,15 +366,44 @@ def draw_path(x,y,line_width):
         #print(path)
 
 def zoom_in(event):
-    global canvas
+    global pil_img, last_w, last_h
     print ("zoom_in")
-    for item in canvas.find_all():
-        print (item)
-        canvas.scale(item, 0,0,0.9,0.9)
-    canvas.configure(3, 100,100)
+    last_w = int(last_w*1.1)
+    last_h = int(last_h*1.1)
+    #pil_img_resized = pil_img.resize((last_w,last_h),PILImage.ANTIALIAS)
+    pil_img_resized = pil_img.resize((last_w,last_h))
+    images.clear()
+    images.append(PILImageTk.PhotoImage(pil_img_resized))
+    #canvas.delete('zoom_in')
+    #canvas.delete('all')
+    #image_id = canvas.create_image(0,0, image=zoomed_img[-1], anchor=NW, tags = 'zoom_in')
+    #canvas.tag_lower('zoomed_img')
+    picture_display.config(image=images[-1])
+    canvas.itemconfig('operand_image',image = images[-1])
+    #canvas.scale("all", event.x, event.y, 1.1, 1.1)
+    print('canvas objects zoom in:',canvas.find_all())
+    #canvas.configure(scrollregion = canvas.bbox("all"))
+
+    #for item in canvas.find_all():
+    #    print (item)
+    #    canvas.scale(item, 0,0,0.9,0.9)
+    #canvas.configure(3, 100,100)
+    #input('waitkey in zoom')
 
 def zoom_out(event):
+    global pil_img, last_w, last_h
     print ("zoom_out")
+    last_w = int(last_w*0.9)
+    last_h = int(last_h*0.9)
+    pil_img_resized = pil_img.resize((last_w,last_h),PILImage.ANTIALIAS)
+    images.clear()
+    images.append(PILImageTk.PhotoImage(pil_img_resized))
+    picture_display.config(image=images[-1])
+    canvas.itemconfig('operand_image', image = images[-1])
+    #canvas.tag_lower('zoomed_img')
+    #canvas.scale("all", event.x, event.y, 0.9, 0.9)
+    print('canvas objects zoom out:',canvas.find_all())
+    #canvas.configure(scrollregion = canvas.bbox("all"))
 
 def set_color(newcolor):
     global color
@@ -410,17 +453,28 @@ def show_image_with_contour(event):
     canvas.tag_lower(image_id)
 
 def show_pixel_nodes(event):
+    global pixel_node_exist, pixel_nodes_img, pil_img
     if scissor_mode.get() != 'pixel_nodes':
-        if os.path.isfile(pixel_nodes_file_name):
+        #if os.path.isfile(pixel_nodes_file_name):
+        if pixel_node_exist == True:
             pass
         else:
             print('......generating pixel_nodes......')
             start_time = time.time()
             obj.link_calculation()
             print('pixel_nodes generation time:', time.time() - start_time)
-            pixel_nodes_img = PILImage.fromarray((np.squeeze(obj.pixel_node)).astype(np.uint8))
-            pixel_nodes_img.save(pixel_nodes_file_name)
-        open_image_by_file(pixel_nodes_file_name, image_tag = 'debug_image')
+            pixel_nodes_img_before = PILImage.fromarray((np.squeeze(obj.pixel_node)).astype(np.uint8))
+            pixel_nodes_img_before.save(pixel_nodes_file_name)
+            pixel_nodes_img = PILImage.open(pixel_nodes_file_name)
+            pil_img = pixel_nodes_img
+            pixel_node_exist = True
+        images.clear()
+        images.append(PILImageTk.PhotoImage(pixel_nodes_img))
+        canvas.itemconfig('operand_image', image = images[-1])
+        picture_display.config(image = images[-1])
+        print('canvas objects before if ends in show_pixel_nodes:',canvas.find_all())
+    print('canvas objects after if ends in show_pixel_nodes:',canvas.find_all())
+
 
 def show_cost_graph(event):
     if scissor_mode.get() != 'cost_graph':
@@ -701,6 +755,7 @@ canvas_path_stack_label = ttk.Label(mainframe, text='<canvas path stack info>', 
 
 min_path_label = ttk.Label(mainframe, text='<min path info>', wraplength = wrap_length, justify = 'left')
 history_paths_label = ttk.Label(mainframe, text='<history paths info>', wraplength = wrap_length, justify = 'left')
+canvas_objects_label = ttk.Label(mainframe, text='<canvas objects info>', wraplength = wrap_length, justify = 'left')
 
 if debug_setting == True:
     hover_mask_label = ttk.Label(mainframe, text='<hover_mask info>')
@@ -713,7 +768,10 @@ if debug_setting == True:
     canvas_path_stack_label.grid(column = 0, row = 18, columnspan = 4, sticky = (tk.W,tk.N))
     min_path_label.grid(column = 0, row = 19, columnspan = 4, sticky = (tk.W,tk.N))
     history_paths_label.grid(column = 0, row = 20, columnspan = 4, sticky = (tk.W,tk.N))
+    canvas_objects_label.grid(column = 0, row = 25, columnspan = 4, sticky = (tk.W,tk.N))
 
+picture_display = ttk.Label(root)
+picture_display.grid(column=0, row=5, columnspan = 4, rowspan = 4, sticky=(tk.N,tk.W,tk.E,tk.S))
 
 #Main function binding
 canvas.bind('<Button-1>', click_xy)
@@ -723,6 +781,8 @@ root.bind('<BackSpace>', delete_path)
 root.bind('<Control-Return>', close_contour_finish)
 root.bind('<Control-plus>', zoom_in)
 root.bind('<Control-minus>', zoom_out)
+root.bind('<Button-4>', zoom_in)
+root.bind('<Button-5>', zoom_out)
 canvas.bind('<Motion>', get_xy)
 canvas.bind('<3>',lambda e : canvas.scan_mark(e.x, e.y))
 canvas.bind('<B3-Motion>',lambda e: canvas.scan_dragto(e.x, e.y))
